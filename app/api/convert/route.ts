@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Document, Paragraph, TextRun, Packer } from 'docx';
+import { Document, Paragraph, TextRun, Packer, HeadingLevel } from 'docx';
 
 interface ConversionResult {
     mainText: string;
@@ -13,7 +13,6 @@ function processText(input: string): ConversionResult {
     const footnotes: string[] = [];
     let output = "";
     let i = 0;
-    let footnoteCounter = 1;
 
     if (!input || input.trim().length === 0) {
         return { mainText: "", footnotes: [] };
@@ -28,7 +27,6 @@ function processText(input: string): ConversionResult {
         }
 
         output += input.slice(i, start);
-
         const end = input.indexOf("}}", start);
 
         if (end === -1) {
@@ -41,7 +39,6 @@ function processText(input: string): ConversionResult {
 
         if (citation.length > 0) {
             footnotes.push(citation);
-            footnoteCounter++;
         }
 
         i = end + 2;
@@ -51,86 +48,184 @@ function processText(input: string): ConversionResult {
 }
 
 /**
- * API route to generate .docx file with real Word footnotes
+ * Create Word paragraphs from text
+ */
+function createParagraphs(text: string): Paragraph[] {
+    if (!text || text.trim().length === 0) {
+        return [new Paragraph({ text: "" })];
+    }
+
+    const paragraphs: Paragraph[] = [];
+    const lines = text.split('\n');
+
+    for (const line of lines) {
+        if (line.trim().length === 0) {
+            paragraphs.push(new Paragraph({ text: "" }));
+            continue;
+        }
+
+        paragraphs.push(new Paragraph({
+            children: [new TextRun({
+                text: line,
+                font: "Times New Roman",
+                size: 24 // 12pt
+            })],
+            spacing: {
+                after: 200,
+                line: 360
+            }
+        }));
+    }
+
+    return paragraphs;
+}
+
+/**
+ * Create footnotes section
+ */
+function createFootnotesSection(footnotes: string[]): Paragraph[] {
+    if (footnotes.length === 0) {
+        return [];
+    }
+
+    const paragraphs: Paragraph[] = [];
+
+    paragraphs.push(new Paragraph({ text: "" }));
+    paragraphs.push(new Paragraph({ text: "" }));
+
+    paragraphs.push(new Paragraph({
+        text: "Footnotes",
+        heading: HeadingLevel.HEADING_1,
+        spacing: {
+            before: 400,
+            after: 200
+        }
+    }));
+
+    paragraphs.push(new Paragraph({
+        children: [new TextRun({
+            text: "________________________________________",
+            size: 20
+        })],
+        spacing: {
+            after: 200
+        }
+    }));
+
+    footnotes.forEach((footnote, index) => {
+        paragraphs.push(new Paragraph({
+            children: [
+                new TextRun({
+                    text: `${index + 1}. `,
+                    bold: true,
+                    font: "Times New Roman",
+                    size: 20
+                }),
+                new TextRun({
+                    text: footnote,
+                    font: "Times New Roman",
+                    size: 20
+                })
+            ],
+            spacing: {
+                after: 100
+            }
+        }));
+    });
+
+    return paragraphs;
+}
+
+/**
+ * API route to generate .docx file
  */
 export async function POST(request: NextRequest) {
     try {
-        const { text } = await request.json();
+        const body = await request.json().catch(() => null);
 
-        if (!text || typeof text !== 'string') {
+        if (!body || !body.text || typeof body.text !== 'string') {
             return NextResponse.json(
-                { error: 'Invalid input text' },
+                { error: 'Invalid request. Please provide text in the request body.' },
+                { status: 400 }
+            );
+        }
+
+        const { text } = body;
+
+        const wordCount = text.trim().split(/\s+/).length;
+        if (wordCount > 10000) {
+            return NextResponse.json(
+                { error: `Text exceeds 10,000 word limit (current: ${wordCount} words)` },
                 { status: 400 }
             );
         }
 
         const { mainText, footnotes } = processText(text);
 
-        // Split text into paragraphs
-        const paragraphs = mainText.split('\n').filter(p => p.trim()).map(para => {
-            const runs: any[] = [];
-            let currentText = para;
-            let footnoteIndex = 0;
-
-            // Find positions where footnotes should be inserted
-            // For now, we'll add footnotes at the end of sentences or specific markers
-            // This is a simplified approach - you may want to enhance this
-
-            runs.push(new TextRun(currentText));
-
-            return new Paragraph({
-                children: runs
-            });
-        });
-
-        // Add footnotes section at the end
-        if (footnotes.length > 0) {
-            paragraphs.push(new Paragraph({ text: '' })); // Empty line
-            paragraphs.push(new Paragraph({
-                children: [new TextRun({
-                    text: 'Footnotes',
-                    bold: true,
-                    size: 24
-                })]
-            }));
-
-            footnotes.forEach((footnote, index) => {
-                paragraphs.push(new Paragraph({
-                    children: [
-                        new TextRun({
-                            text: `${index + 1}. `,
-                            bold: true
-                        }),
-                        new TextRun(footnote)
-                    ]
-                }));
-            });
+        if (!mainText || mainText.trim().length === 0) {
+            return NextResponse.json(
+                { error: 'No valid text found after processing' },
+                { status: 400 }
+            );
         }
 
-        // Create document
+        const mainParagraphs = createParagraphs(mainText);
+        const footnotesParagraphs = createFootnotesSection(footnotes);
+        const allParagraphs = [...mainParagraphs, ...footnotesParagraphs];
+
         const doc = new Document({
             sections: [{
-                properties: {},
-                children: paragraphs
+                properties: {
+                    page: {
+                        margin: {
+                            top: 1440,
+                            right: 1440,
+                            bottom: 1440,
+                            left: 1440
+                        }
+                    }
+                },
+                children: allParagraphs
             }]
         });
 
-        // Generate buffer
         const buffer = await Packer.toBuffer(doc);
 
-        // Return as downloadable file
-        return new NextResponse(buffer, {
+        if (!buffer || buffer.length === 0) {
+            throw new Error('Generated document is empty');
+        }
+
+        return new NextResponse(new Uint8Array(buffer), {
+            status: 200,
             headers: {
                 'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'Content-Disposition': 'attachment; filename="CitationFix-Output.docx"'
+                'Content-Disposition': 'attachment; filename="CitationFix-Output.docx"',
+                'Content-Length': buffer.length.toString(),
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
             }
         });
 
     } catch (error) {
         console.error('Error generating .docx:', error);
+
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+
         return NextResponse.json(
-            { error: 'Failed to generate .docx file' },
+            {
+                error: 'Failed to generate .docx file',
+                details: errorMessage,
+                timestamp: new Date().toISOString()
+            },
             { status: 500 }
         );
     }
+}
+
+export async function GET() {
+    return NextResponse.json(
+        { error: 'Method not allowed. Use POST to convert text.' },
+        { status: 405 }
+    );
 }

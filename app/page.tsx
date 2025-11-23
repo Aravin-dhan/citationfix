@@ -55,7 +55,7 @@ export default function Home() {
     setCopiedFootnotes(false);
   };
 
-  const handleDownloadDocx = async () => {
+  const handleDownloadDocx = async (retryCount = 0) => {
     try {
       setIsDownloading(true);
       setErrorMessage('');
@@ -69,20 +69,52 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate .docx file');
+        // Try to get detailed error message from API
+        const errorData = await response.json().catch(() => null);
+        const errorMsg = errorData?.error || errorData?.details || 'Failed to generate .docx file';
+        throw new Error(errorMsg);
       }
 
       const blob = await response.blob();
+
+      // Validate blob
+      if (!blob || blob.size === 0) {
+        throw new Error('Generated file is empty. Please try again.');
+      }
+
+      // Validate blob type
+      if (blob.type !== 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        console.warn('Unexpected blob type:', blob.type);
+      }
+
+      // Create download link
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'CitationFix-Output.docx';
+      a.download = `CitationFix-${Date.now()}.docx`;
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+
+      // Cleanup
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 100);
+
+      // Success - clear any previous errors
+      setErrorMessage('');
+
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to download file');
+      const errorMsg = error instanceof Error ? error.message : 'Failed to download file';
+
+      // Retry logic for network errors
+      if (retryCount < 2 && (errorMsg.includes('network') || errorMsg.includes('fetch'))) {
+        console.log(`Retrying download (attempt ${retryCount + 1}/2)...`);
+        setTimeout(() => handleDownloadDocx(retryCount + 1), 1000);
+        return;
+      }
+
+      setErrorMessage(`Download failed: ${errorMsg}`);
     } finally {
       setIsDownloading(false);
     }
@@ -297,7 +329,7 @@ export default function Home() {
                     )}
                   </button>
                   <button
-                    onClick={handleDownloadDocx}
+                    onClick={() => handleDownloadDocx()}
                     disabled={isDownloading}
                     className="px-3 py-1.5 rounded text-xs font-medium bg-[var(--primary)] text-white hover:bg-[var(--primary-dark)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
                   >
