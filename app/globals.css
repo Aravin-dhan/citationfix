@@ -8,6 +8,7 @@
   /* Professional legal color palette - navy and burgundy */
   --primary: #1e3a5f;
   --primary-dark: #152a45;
+  --primary-light: #2d5a8f;
   --accent: #8b2635;
   --accent-light: #a13545;
 
@@ -15,6 +16,7 @@
   --border: #e0e0e0;
   --text-muted: #666666;
   --success: #2d6a4f;
+  --error: #c53030;
 }
 
 @theme inline {
@@ -26,17 +28,21 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0f0f0f;
+    --background: #0a0a0a;
     --foreground: #f5f5f5;
 
-    --primary: #2d5a8f;
-    --primary-dark: #1e3a5f;
-    --accent: #b84555;
-    --accent-light: #c85565;
+    /* Improved dark mode colors with better contrast */
+    --primary: #4a7bb8;
+    --primary-dark: #2d5a8f;
+    --primary-light: #6b9bd8;
+    --accent: #d66b7a;
+    --accent-light: #e88896;
 
     --surface: #1a1a1a;
-    --border: #333333;
-    --text-muted: #a0a0a0;
+    --border: #404040;
+    --text-muted: #b0b0b0;
+    --success: #52c77a;
+    --error: #f56565;
   }
 }
 
@@ -76,4 +82,21 @@ body {
 /* Professional serif headings */
 .serif-heading {
   font-family: 'Crimson Text', Georgia, serif;
+}
+
+/* File upload dropzone */
+.dropzone {
+  border: 2px dashed var(--border);
+  transition: all 0.2s ease;
+}
+
+.dropzone:hover {
+  border-color: var(--primary);
+  background: var(--background);
+}
+
+.dropzone.dragover {
+  border-color: var(--primary);
+  background: var(--primary);
+  opacity: 0.1;
 }
