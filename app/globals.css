@@ -1,26 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Crimson+Text:wght@400;600&display=swap');
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fafafa;
+  --foreground: #1a1a1a;
+
+  /* Professional legal color palette - navy and burgundy */
+  --primary: #1e3a5f;
+  --primary-dark: #152a45;
+  --accent: #8b2635;
+  --accent-light: #a13545;
+
+  --surface: #ffffff;
+  --border: #e0e0e0;
+  --text-muted: #666666;
+  --success: #2d6a4f;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-serif: 'Crimson Text', Georgia, serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0f0f0f;
+    --foreground: #f5f5f5;
+
+    --primary: #2d5a8f;
+    --primary-dark: #1e3a5f;
+    --accent: #b84555;
+    --accent-light: #c85565;
+
+    --surface: #1a1a1a;
+    --border: #333333;
+    --text-muted: #a0a0a0;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Smooth transitions */
+* {
+  transition-property: color, background-color, border-color, transform, box-shadow;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Professional serif headings */
+.serif-heading {
+  font-family: 'Crimson Text', Georgia, serif;
 }

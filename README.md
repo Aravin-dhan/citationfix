@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CitationFix
+
+A professional web application for converting inline citations to formatted footnotes. Perfect for law students, researchers, and academics.
+
+## Features
+
+- **AI Prompt Integration**: Copy-paste prompt guide for ChatGPT/Claude to generate properly formatted citations
+- **Instant Conversion**: Convert `{{fn: citation}}` markers to superscript footnotes
+- **Copy to Clipboard**: One-click copying of clean text and footnotes
+- **Privacy-First**: All processing happens client-side in your browser
+- **Professional Design**: Clean, legal-themed interface
+
+## How It Works
+
+1. **Get AI-formatted citations**: Use the provided prompt with ChatGPT/Claude
+2. **Paste your text**: Include `{{fn: citation}}` markers where you want footnotes
+3. **Convert**: Click the button to process
+4. **Copy to Word**: Get clean main text and numbered footnotes
+
+## Example
+
+**Input:**
+```
+This is a legal argument.{{fn: Smith v. Jones, 123 F.3d 456 (2020)}} The court held...
+```
+
+**Output:**
+- Main Text: `This is a legal argument.¹ The court held...`
+- Footnotes: `1. Smith v. Jones, 123 F.3d 456 (2020)`
+
+## Tech Stack
+
+- **Framework**: Next.js 16 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS v4
+- **Deployment**: Vercel
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+# Install dependencies
+npm install
+
+# Run development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# Build for production
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit `http://localhost:3000` to see the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Privacy
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+CitationFix processes all text client-side. No data is stored, logged, or transmitted to any server.
 
-## Learn More
+## License
 
-To learn more about Next.js, take a look at the following resources:
+MIT
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Author
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Built for the legal and academic community.
