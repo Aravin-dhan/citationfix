@@ -8,166 +8,143 @@ import {
     Footnote
 } from 'docx';
 
-interface ConversionResult {
-    mainText: string;
-    footnotes: string[];
-    positions: number[];
+interface ParsedSegment {
+    text: string;
+    hasFootnote: boolean;
+    footnoteId?: number;
+    footnoteText?: string;
 }
 
 /**
- * Process text and track footnote positions
+ * Parse text into segments with footnote markers
  */
-function processTextWithPositions(input: string): ConversionResult {
-    const footnotes: string[] = [];
-    const positions: number[] = [];
-    let output = "";
+function parseTextIntoSegments(input: string): ParsedSegment[] {
+    const segments: ParsedSegment[] = [];
     let i = 0;
-    let charPosition = 0;
-
-    if (!input || input.trim().length === 0) {
-        return { mainText: "", footnotes: [], positions: [] };
-    }
+    let footnoteCounter = 1;
 
     while (i < input.length) {
         const start = input.indexOf("{{fn:", i);
 
         if (start === -1) {
+            // No more footnotes, add remaining text
             const remaining = input.slice(i);
-            output += remaining;
-            charPosition += remaining.length;
+            if (remaining) {
+                segments.push({ text: remaining, hasFootnote: false });
+            }
             break;
         }
 
-        const beforeMarker = input.slice(i, start);
-        output += beforeMarker;
-        charPosition += beforeMarker.length;
+        // Add text before the footnote marker
+        if (start > i) {
+            segments.push({
+                text: input.slice(i, start),
+                hasFootnote: false
+            });
+        }
 
+        // Find the closing braces
         const end = input.indexOf("}}", start);
 
         if (end === -1) {
-            const remaining = input.slice(start);
-            output += remaining;
-            charPosition += remaining.length;
+            // Malformed marker, add rest as text
+            segments.push({
+                text: input.slice(start),
+                hasFootnote: false
+            });
             break;
         }
 
-        const inner = input.slice(start + 5, end);
-        const citation = inner.trim();
+        // Extract the citation
+        const citation = input.slice(start + 5, end).trim();
 
         if (citation.length > 0) {
-            footnotes.push(citation);
-            positions.push(charPosition);
+            // Add a segment with footnote marker
+            segments.push({
+                text: "", // No text, just the footnote reference
+                hasFootnote: true,
+                footnoteId: footnoteCounter,
+                footnoteText: citation
+            });
+            footnoteCounter++;
         }
 
         i = end + 2;
     }
 
-    return { mainText: output, footnotes, positions };
+    return segments;
 }
 
 /**
- * Create paragraphs with real Word footnote references
+ * Create paragraphs with real Word footnotes
  */
-function createParagraphsWithFootnotes(
-    text: string,
-    footnotes: string[],
-    positions: number[]
-): { paragraphs: Paragraph[], footnoteObjects: Footnote[] } {
-
-    const footnoteObjects: Footnote[] = [];
+function createDocumentWithFootnotes(text: string): {
+    paragraphs: Paragraph[],
+    footnotes: Record<number, Footnote>
+} {
+    const segments = parseTextIntoSegments(text);
     const paragraphs: Paragraph[] = [];
+    const footnotes: Record<number, Footnote> = {};
 
     // Create footnote objects
-    footnotes.forEach((citation, index) => {
-        footnoteObjects.push(
-            new Footnote({
-                id: index + 1,
+    segments.forEach(segment => {
+        if (segment.hasFootnote && segment.footnoteId && segment.footnoteText) {
+            footnotes[segment.footnoteId] = new Footnote({
+                id: segment.footnoteId,
                 children: [
                     new Paragraph({
                         children: [
                             new TextRun({
-                                text: citation,
+                                text: segment.footnoteText,
                                 font: "Times New Roman",
                                 size: 20 // 10pt
                             })
                         ]
                     })
                 ]
-            })
-        );
+            });
+        }
     });
 
-    // Split text into paragraphs
+    // Split into lines and create paragraphs
     const lines = text.split('\n');
-    let currentCharPosition = 0;
-    let footnoteIndex = 0;
 
     for (const line of lines) {
         if (line.trim().length === 0) {
             paragraphs.push(new Paragraph({ text: "" }));
-            currentCharPosition += 1; // newline character
             continue;
         }
 
+        // Parse this line for footnotes
+        const lineSegments = parseTextIntoSegments(line);
         const children: (TextRun | FootnoteReferenceRun)[] = [];
-        let linePosition = 0;
 
-        // Check if this line contains any footnote positions
-        while (linePosition < line.length) {
-            // Find next footnote position in this line
-            const nextFootnotePos = positions[footnoteIndex];
-            const relativePos = nextFootnotePos - currentCharPosition;
-
-            if (footnoteIndex < footnotes.length &&
-                relativePos >= linePosition &&
-                relativePos <= line.length) {
-
-                // Add text before footnote
-                if (relativePos > linePosition) {
-                    children.push(new TextRun({
-                        text: line.slice(linePosition, relativePos),
-                        font: "Times New Roman",
-                        size: 24
-                    }));
-                }
-
+        for (const segment of lineSegments) {
+            if (segment.hasFootnote && segment.footnoteId) {
                 // Add footnote reference
-                children.push(new FootnoteReferenceRun(footnoteIndex + 1));
-
-                linePosition = relativePos;
-                footnoteIndex++;
-            } else {
-                // No more footnotes in this line, add remaining text
+                children.push(new FootnoteReferenceRun(segment.footnoteId));
+            } else if (segment.text) {
+                // Add regular text
                 children.push(new TextRun({
-                    text: line.slice(linePosition),
+                    text: segment.text,
                     font: "Times New Roman",
-                    size: 24
+                    size: 24 // 12pt
                 }));
-                break;
             }
         }
 
-        // If no footnotes were found in this line, just add the text
-        if (children.length === 0) {
-            children.push(new TextRun({
-                text: line,
-                font: "Times New Roman",
-                size: 24
+        if (children.length > 0) {
+            paragraphs.push(new Paragraph({
+                children,
+                spacing: {
+                    after: 200,
+                    line: 360
+                }
             }));
         }
-
-        paragraphs.push(new Paragraph({
-            children,
-            spacing: {
-                after: 200,
-                line: 360
-            }
-        }));
-
-        currentCharPosition += line.length + 1; // +1 for newline
     }
 
-    return { paragraphs, footnoteObjects };
+    return { paragraphs, footnotes };
 }
 
 /**
@@ -186,6 +163,7 @@ export async function POST(request: NextRequest) {
 
         const { text } = body;
 
+        // Validate word count
         const wordCount = text.trim().split(/\s+/).length;
         if (wordCount > 10000) {
             return NextResponse.json(
@@ -194,31 +172,32 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const { mainText, footnotes, positions } = processTextWithPositions(text);
-
-        if (!mainText || mainText.trim().length === 0) {
+        // Validate input
+        if (!text || text.trim().length === 0) {
             return NextResponse.json(
-                { error: 'No valid text found after processing' },
+                { error: 'No valid text found' },
                 { status: 400 }
             );
         }
 
-        const { paragraphs, footnoteObjects } = createParagraphsWithFootnotes(
-            mainText,
-            footnotes,
-            positions
-        );
-
         // Create document with real footnotes
+        const { paragraphs, footnotes } = createDocumentWithFootnotes(text);
+
+        if (paragraphs.length === 0) {
+            return NextResponse.json(
+                { error: 'No content to generate' },
+                { status: 400 }
+            );
+        }
+
+        // Create the Word document
         const doc = new Document({
-            footnotes: Object.fromEntries(
-                footnoteObjects.map((fn, idx) => [idx + 1, fn])
-            ),
+            footnotes: footnotes,
             sections: [{
                 properties: {
                     page: {
                         margin: {
-                            top: 1440,
+                            top: 1440,    // 1 inch
                             right: 1440,
                             bottom: 1440,
                             left: 1440
@@ -229,12 +208,14 @@ export async function POST(request: NextRequest) {
             }]
         });
 
+        // Generate buffer
         const buffer = await Packer.toBuffer(doc);
 
         if (!buffer || buffer.length === 0) {
             throw new Error('Generated document is empty');
         }
 
+        // Return the .docx file
         return new NextResponse(new Uint8Array(buffer), {
             status: 200,
             headers: {
