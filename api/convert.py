@@ -53,6 +53,18 @@ class handler(BaseHTTPRequestHandler):
             text = data.get('text', '')
             apply_formatting = data.get('formatting', False)
             convert_citations = data.get('convert_citations', True)
+            
+            # Advanced Formatting Options (Defaults match previous hardcoded values)
+            font_name = data.get('font', 'Times New Roman')
+            try:
+                font_size = float(data.get('font_size', 12))
+            except (ValueError, TypeError):
+                font_size = 12.0
+            
+            try:
+                line_spacing = float(data.get('line_spacing', 1.5))
+            except (ValueError, TypeError):
+                line_spacing = 1.5
 
             # Validate input
             if not text:
@@ -75,19 +87,20 @@ class handler(BaseHTTPRequestHandler):
             doc = Document()
             
             # Set default style to Times New Roman 12 if formatting enabled
+            # Set default style if formatting enabled
             style = doc.styles['Normal']
             if apply_formatting:
                 font = style.font
-                font.name = 'Times New Roman'
-                font.size = Pt(12)
+                font.name = font_name
+                font.size = Pt(font_size)
             
             # Configure Footnote Text style if formatting is requested
             if apply_formatting:
                 try:
                     footnote_style = doc.styles['Footnote Text']
-                    footnote_style.font.name = 'Times New Roman'
-                    footnote_style.font.size = Pt(10)
-                    footnote_style.paragraph_format.line_spacing = 1.0
+                    footnote_style.font.name = font_name
+                    footnote_style.font.size = Pt(10) # Footnotes usually smaller
+                    footnote_style.paragraph_format.line_spacing = 1.0 # Footnotes usually single spaced
                 except KeyError:
                     pass
 
@@ -103,7 +116,7 @@ class handler(BaseHTTPRequestHandler):
                 # Apply formatting to paragraph
                 if apply_formatting:
                     p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-                    p.paragraph_format.line_spacing = 1.5
+                    p.paragraph_format.line_spacing = line_spacing
                     p.paragraph_format.space_after = Pt(0)
                 
                 if convert_citations:
@@ -128,10 +141,6 @@ class handler(BaseHTTPRequestHandler):
                                             fn_paras = footnote.paragraphs
                                         else:
                                             # If it's an oxml element, we might need to wrap it or access xml children
-                                            # For now, let's try to assume it might be a proxy that just needs a refresh or 
-                                            # it's a different structure. 
-                                            # Actually, if it's CT_Footnote, we can't easily wrap it without internal classes.
-                                            # Let's try to find the paragraph element within it.
                                             from docx.text.paragraph import Paragraph
                                             fn_paras = [Paragraph(p, p.getparent()) for p in footnote.findall(ns.qn('w:p'))]
 
@@ -139,7 +148,7 @@ class handler(BaseHTTPRequestHandler):
                                             fn_para = fn_paras[0]
                                             fn_para.style = doc.styles['Footnote Text']
                                             for run in fn_para.runs:
-                                                run.font.name = 'Times New Roman'
+                                                run.font.name = font_name
                                                 run.font.size = Pt(10)
                                     except Exception as fn_error:
                                         print(f"Warning: Could not format footnote: {fn_error}")
@@ -148,14 +157,14 @@ class handler(BaseHTTPRequestHandler):
                             if part:
                                 run = p.add_run(part)
                                 if apply_formatting:
-                                    run.font.name = 'Times New Roman'
-                                    run.font.size = Pt(12)
+                                    run.font.name = font_name
+                                    run.font.size = Pt(font_size)
                 else:
                     # No citation conversion, just add text as is
                     run = p.add_run(para_text)
                     if apply_formatting:
-                        run.font.name = 'Times New Roman'
-                        run.font.size = Pt(12)
+                        run.font.name = font_name
+                        run.font.size = Pt(font_size)
 
             # Add page numbers in footer "1 of xx" only if formatting is requested
             if apply_formatting:
