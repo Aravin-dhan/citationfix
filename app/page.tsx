@@ -307,8 +307,6 @@ export default function Home() {
                       </>
                     )}
                   </button>
-                    )}
-                  </button>
                 </div>
               </div>
               <div className="p-3 rounded bg-[var(--background)] border border-[var(--border)]">
@@ -318,92 +316,128 @@ export default function Home() {
               </div>
             </section>
 
-      {/* Footnotes */}
-      {footnotes.length > 0 && (
-        <section className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-[var(--foreground)]">
-              Footnotes ({footnotes.length})
-            </h3>
-            <button
-              onClick={() => copyToClipboard(formatFootnotes(footnotes), 'footnotes')}
-              className="px-3 py-1.5 rounded text-xs font-medium bg-[var(--background)] border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--border)] transition-colors flex items-center gap-1.5"
-            >
-              {copiedFootnotes ? (
-                <>
-                  <svg className="w-3.5 h-3.5 text-[var(--success)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Copied
-                </>
-              ) : (
-                <>
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                  Copy
-                </>
-              )}
-            </button>
+            {/* Footnotes */}
+            {footnotes.length > 0 && (
+              <section className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-[var(--foreground)]">
+                    Footnotes ({footnotes.length})
+                  </h3>
+                  <button
+                    onClick={() => copyToClipboard(formatFootnotes(footnotes), 'footnotes')}
+                    className="px-3 py-1.5 rounded text-xs font-medium bg-[var(--background)] border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--border)] transition-colors flex items-center gap-1.5"
+                  >
+                    {copiedFootnotes ? (
+                      <>
+                        <svg className="w-3.5 h-3.5 text-[var(--success)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Copied
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Copy
+                      </>
+                    )}
+                  </button>
+                </div>
+                <div className="p-3 rounded bg-[var(--background)] border border-[var(--border)]">
+                  <ol className="space-y-2">
+                    {footnotes.map((fn, index) => (
+                      <li key={index} className="text-sm text-[var(--foreground)] leading-relaxed">
+                        <span className="font-semibold text-[var(--accent)] mr-2">
+                          {index + 1}.
+                        </span>
+                        {fn}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              </section>
+            )}
+
+            {/* Download Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 pt-4">
+              <button
+                onClick={() => handleDownloadDocx(false)}
+                disabled={isDownloading}
+                className="flex-1 bg-accent hover:bg-accent/90 text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDownloading ? (
+                  <span className="animate-pulse">Generating...</span>
+                ) : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                    Download Basic .docx
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={() => handleDownloadDocx(true)}
+                disabled={isDownloading}
+                className="flex-1 bg-primary hover:bg-primary/90 text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed border border-white/10"
+              >
+                {isDownloading ? (
+                  <span className="animate-pulse">Formatting...</span>
+                ) : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                    </svg>
+                    Format & Download
+                  </>
+                )}
+              </button>
+            </div>
           </div>
-          <div className="p-3 rounded bg-[var(--background)] border border-[var(--border)]">
-            <ol className="space-y-2">
-              {footnotes.map((fn, index) => (
-                <li key={index} className="text-sm text-[var(--foreground)] leading-relaxed">
-                  <span className="font-semibold text-[var(--accent)] mr-2">
-                    {index + 1}.
-                  </span>
-                  {fn}
-                </li>
-              ))}
-            </ol>
+        )}
+
+        {/* Example */}
+        <section className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
+          <h2 className="text-lg font-semibold text-[var(--foreground)] mb-3">Example</h2>
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs font-medium text-[var(--text-muted)] mb-1.5">Input:</p>
+              <code className="block p-3 bg-[var(--background)] border border-[var(--border)] rounded text-xs font-mono text-[var(--foreground)]">
+                {'This is a legal argument.{{fn: Smith v. Jones, 123 F.3d 456 (2020)}} The court held...{{fn: Legal Theory, p. 45}}'}
+              </code>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-[var(--text-muted)] mb-1.5">Output:</p>
+              <div className="p-3 bg-[var(--background)] border border-[var(--border)] rounded text-xs">
+                <p className="text-[var(--foreground)] mb-2">
+                  This is a legal argument.¹ The court held...²
+                </p>
+                <ol className="space-y-1 text-[var(--text-muted)]">
+                  <li><span className="font-semibold text-[var(--accent)]">1.</span> Smith v. Jones, 123 F.3d 456 (2020)</li>
+                  <li><span className="font-semibold text-[var(--accent)]">2.</span> Legal Theory, p. 45</li>
+                </ol>
+              </div>
+            </div>
           </div>
         </section>
-      )}
-    </div>
-  )
-}
+      </main>
 
-{/* Example */ }
-<section className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-  <h2 className="text-lg font-semibold text-[var(--foreground)] mb-3">Example</h2>
-  <div className="space-y-3">
-    <div>
-      <p className="text-xs font-medium text-[var(--text-muted)] mb-1.5">Input:</p>
-      <code className="block p-3 bg-[var(--background)] border border-[var(--border)] rounded text-xs font-mono text-[var(--foreground)]">
-        {'This is a legal argument.{{fn: Smith v. Jones, 123 F.3d 456 (2020)}} The court held...{{fn: Legal Theory, p. 45}}'}
-      </code>
+      {/* Footer */}
+      <footer className="border-t border-[var(--border)] bg-[var(--surface)] mt-12">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[var(--text-muted)]">
+            <p>© 2025 CitationFix. Client-side processing only.</p>
+            <a
+              href="/privacy"
+              className="hover:text-[var(--primary)] transition-colors font-medium"
+            >
+              Privacy Policy
+            </a>
+          </div>
+        </div>
+      </footer>
     </div>
-    <div>
-      <p className="text-xs font-medium text-[var(--text-muted)] mb-1.5">Output:</p>
-      <div className="p-3 bg-[var(--background)] border border-[var(--border)] rounded text-xs">
-        <p className="text-[var(--foreground)] mb-2">
-          This is a legal argument.¹ The court held...²
-        </p>
-        <ol className="space-y-1 text-[var(--text-muted)]">
-          <li><span className="font-semibold text-[var(--accent)]">1.</span> Smith v. Jones, 123 F.3d 456 (2020)</li>
-          <li><span className="font-semibold text-[var(--accent)]">2.</span> Legal Theory, p. 45</li>
-        </ol>
-      </div>
-    </div>
-  </div>
-</section>
-      </main >
-
-  {/* Footer */ }
-  < footer className = "border-t border-[var(--border)] bg-[var(--surface)] mt-12" >
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[var(--text-muted)]">
-        <p>© 2025 CitationFix. Client-side processing only.</p>
-        <a
-          href="/privacy"
-          className="hover:text-[var(--primary)] transition-colors font-medium"
-        >
-          Privacy Policy
-        </a>
-      </div>
-    </div>
-      </footer >
-    </div >
   );
 }
