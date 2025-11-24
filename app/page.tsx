@@ -161,21 +161,21 @@ export default function Home() {
       <Tutorial />
 
       {/* Top Navigation Bar (DocHub Style) */}
-      <header className="h-16 bg-[var(--header-bg)] text-[var(--header-text)] flex items-center justify-between px-4 shadow-md z-10 flex-shrink-0">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
+      <header className="h-16 bg-[var(--header-bg)] text-[var(--header-text)] flex items-center justify-between px-4 shadow-md z-10 flex-shrink-0 gap-4">
+        <div className="flex items-center gap-4 min-w-0">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <div className="bg-[var(--primary)] p-1.5 rounded-md">
               <FileText className="w-5 h-5 text-white" />
             </div>
-            <h1 className="text-lg font-bold tracking-tight">CitationFix</h1>
+            <h1 className="text-lg font-bold tracking-tight hidden sm:block">CitationFix</h1>
           </div>
-          <div className="h-6 w-px bg-gray-600 mx-2" />
+          <div className="h-6 w-px bg-gray-600 mx-2 hidden sm:block" />
           <div className="flex items-center gap-2">
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-gray-700 hover:bg-gray-600 rounded transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-gray-700 hover:bg-gray-600 rounded transition-colors whitespace-nowrap"
             >
-              <Upload className="w-4 h-4" /> Upload
+              <Upload className="w-4 h-4" /> <span className="hidden sm:inline">Upload</span>
             </button>
             <input
               ref={fileInputRef}
@@ -190,14 +190,14 @@ export default function Home() {
 
         <div className="flex items-center gap-3">
           {/* Action Toggles */}
-          <div className="flex bg-gray-800 rounded-md p-1 border border-gray-700">
+          <div className="flex bg-gray-800 rounded-md p-1 border border-gray-700 gap-1">
             <button
               onClick={() => setUseCitations(!useCitations)}
               className={`px-3 py-1.5 rounded text-sm font-medium flex items-center gap-2 transition-all ${useCitations ? 'bg-[var(--primary)] text-white shadow-sm' : 'text-gray-400 hover:text-white'
                 }`}
               title="Convert {{fn: ...}} to footnotes"
             >
-              <Quote className="w-3.5 h-3.5" /> Citations
+              <Quote className="w-3.5 h-3.5" /> <span className="hidden md:inline">Citations</span>
             </button>
             <button
               onClick={() => setUseFormatting(!useFormatting)}
@@ -205,22 +205,24 @@ export default function Home() {
                 }`}
               title="Apply Legal Formatting"
             >
-              <AlignLeft className="w-3.5 h-3.5" /> Formatting
+              <AlignLeft className="w-3.5 h-3.5" /> <span className="hidden md:inline">Formatting</span>
             </button>
           </div>
 
           <button
             onClick={handleDownloadDocx}
             disabled={!inputText.trim() || isDownloading}
-            className="flex items-center gap-2 px-4 py-2 bg-[var(--success)] hover:bg-green-600 text-white rounded-md text-sm font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-4 py-2 bg-[var(--success)] hover:bg-green-600 text-white rounded-md text-sm font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
           >
             {isDownloading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Download className="w-4 h-4" />}
-            Download
+            <span className="hidden sm:inline">Download</span>
           </button>
 
-          <div className="h-6 w-px bg-gray-600 mx-1" />
+          <div className="h-6 w-px bg-gray-600 mx-1 hidden sm:block" />
 
-          <ThemeToggle />
+          <div className="hidden sm:block">
+            <ThemeToggle />
+          </div>
           <button onClick={() => setShowTips(!showTips)} className="p-2 text-gray-400 hover:text-white transition-colors">
             <Info className="w-5 h-5" />
           </button>
