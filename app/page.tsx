@@ -161,9 +161,9 @@ export default function Home() {
       <Tutorial />
 
       {/* Top Navigation Bar (DocHub Style) */}
-      <header className="h-16 bg-[var(--header-bg)] text-[var(--header-text)] flex items-center justify-between px-4 shadow-md z-10 flex-shrink-0 gap-4">
+      <header className="h-16 bg-[var(--header-bg)] text-[var(--header-text)] flex items-center justify-between px-6 shadow-md z-10 flex-shrink-0" style={{ gap: '1rem' }}>
         <div className="flex items-center gap-4 min-w-0">
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-3 flex-shrink-0">
             <div className="bg-[var(--primary)] p-1.5 rounded-md">
               <FileText className="w-5 h-5 text-white" />
             </div>
@@ -188,9 +188,9 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4" style={{ gap: '1rem' }}>
           {/* Action Toggles */}
-          <div className="flex bg-gray-800 rounded-md p-1 border border-gray-700 gap-1">
+          <div className="flex bg-gray-800 rounded-md p-1 border border-gray-700 gap-1" style={{ gap: '0.25rem' }}>
             <button
               onClick={() => setUseCitations(!useCitations)}
               className={`px-3 py-1.5 rounded text-sm font-medium flex items-center gap-2 transition-all ${useCitations ? 'bg-[var(--primary)] text-white shadow-sm' : 'text-gray-400 hover:text-white'
@@ -232,7 +232,7 @@ export default function Home() {
       {/* Main Workspace */}
       <main className="flex-1 flex relative overflow-hidden">
 
-        {/* Sidebar / Tips Panel (Slide-over or persistent) */}
+        {/* Sidebar / Tips Panel */}
         {showTips && (
           <div className="w-80 bg-white border-r border-[var(--border)] flex-shrink-0 overflow-y-auto z-20 shadow-xl absolute left-0 top-0 bottom-0 animate-fade-in md:relative md:shadow-none">
             <div className="p-4 border-b border-[var(--border)] flex justify-between items-center bg-gray-50">
@@ -283,19 +283,23 @@ export default function Home() {
             </div>
           )}
 
-          {/* The "Paper" */}
-          <div className="w-full max-w-[850px] min-h-[1100px] bg-[var(--paper-bg)] doc-shadow flex flex-col relative transition-all duration-300">
+          {/* The "Paper" - Explicit A4 Width */}
+          <div
+            className="bg-[var(--paper-bg)] doc-shadow flex flex-col relative transition-all duration-300"
+            style={{ width: '816px', minHeight: '1056px', maxWidth: '100%' }}
+          >
             <textarea
               ref={textareaRef}
               value={inputText}
               onChange={(e) => handleTextChange(e.target.value)}
               placeholder="Paste your legal document here..."
-              className="w-full h-full p-16 bg-transparent border-none resize-none focus:ring-0 text-[var(--ink)] placeholder-gray-300 text-lg leading-relaxed font-serif outline-none"
+              className="w-full h-full bg-transparent border-none resize-none focus:ring-0 text-[var(--ink)] placeholder-gray-300 text-lg leading-loose font-serif outline-none"
+              style={{ padding: '3rem 4rem' }}
               spellCheck={false}
             />
 
             {/* Footer / Status Bar inside the paper */}
-            <div className="absolute bottom-0 left-0 right-0 h-12 border-t border-[var(--border)] bg-gray-50/50 flex items-center justify-between px-6 text-xs text-[var(--ink-muted)]">
+            <div className="absolute bottom-0 left-0 right-0 h-10 border-t border-[var(--border)] bg-gray-50/50 flex items-center justify-between px-6 text-xs text-[var(--ink-muted)]">
               <span>{wordCount.toLocaleString()} words</span>
               <div className="flex gap-4">
                 <span>Ln {inputText.split('\n').length}</span>
