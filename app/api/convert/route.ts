@@ -3,110 +3,64 @@ import {
     Document,
     Paragraph,
     TextRun,
-    Packer,
-    FootnoteReferenceRun,
-    Footnote
+    Packer
 } from 'docx';
 
-interface ParsedSegment {
-    text: string;
-    hasFootnote: boolean;
-    footnoteId?: number;
-    footnoteText?: string;
+interface ConversionResult {
+    mainText: string;
+    footnotes: string[];
 }
 
 /**
- * Parse text into segments with footnote markers
+ * Process text and extract footnotes
  */
-function parseTextIntoSegments(input: string): ParsedSegment[] {
-    const segments: ParsedSegment[] = [];
+function processText(input: string): ConversionResult {
+    const footnotes: string[] = [];
+    let output = "";
     let i = 0;
-    let footnoteCounter = 1;
+
+    if (!input || input.trim().length === 0) {
+        return { mainText: "", footnotes: [] };
+    }
 
     while (i < input.length) {
         const start = input.indexOf("{{fn:", i);
 
         if (start === -1) {
-            // No more footnotes, add remaining text
-            const remaining = input.slice(i);
-            if (remaining) {
-                segments.push({ text: remaining, hasFootnote: false });
-            }
+            output += input.slice(i);
             break;
         }
 
-        // Add text before the footnote marker
-        if (start > i) {
-            segments.push({
-                text: input.slice(i, start),
-                hasFootnote: false
-            });
-        }
-
-        // Find the closing braces
+        output += input.slice(i, start);
         const end = input.indexOf("}}", start);
 
         if (end === -1) {
-            // Malformed marker, add rest as text
-            segments.push({
-                text: input.slice(start),
-                hasFootnote: false
-            });
+            output += input.slice(start);
             break;
         }
 
-        // Extract the citation
-        const citation = input.slice(start + 5, end).trim();
+        const inner = input.slice(start + 5, end);
+        const citation = inner.trim();
 
         if (citation.length > 0) {
-            // Add a segment with footnote marker
-            segments.push({
-                text: "", // No text, just the footnote reference
-                hasFootnote: true,
-                footnoteId: footnoteCounter,
-                footnoteText: citation
-            });
-            footnoteCounter++;
+            footnotes.push(citation);
         }
 
         i = end + 2;
     }
 
-    return segments;
+    return { mainText: output, footnotes };
 }
 
 /**
- * Create paragraphs with real Word footnotes
+ * Create Word paragraphs from text
  */
-function createDocumentWithFootnotes(text: string): {
-    paragraphs: Paragraph[],
-    footnotes: Record<number, Footnote>
-} {
-    const segments = parseTextIntoSegments(text);
+function createParagraphs(text: string): Paragraph[] {
+    if (!text || text.trim().length === 0) {
+        return [new Paragraph({ text: "" })];
+    }
+
     const paragraphs: Paragraph[] = [];
-    const footnotes: Record<number, Footnote> = {};
-
-    // Create footnote objects
-    segments.forEach(segment => {
-        if (segment.hasFootnote && segment.footnoteId && segment.footnoteText) {
-            footnotes[segment.footnoteId] = new Footnote({
-                id: segment.footnoteId,
-                children: [
-                    new Paragraph({
-                        children: [
-                            new TextRun({
-                                text: segment.footnoteText,
-                                font: "Times New Roman",
-                                size: 20 // 10pt
-                            })
-                        ]
-                    })
-                ]
-            });
-        }
-    });
-
-    // Split into lines and create paragraphs
     const lines = text.split('\n');
 
     for (const line of lines) {
@@ -115,40 +69,91 @@ function createDocumentWithFootnotes(text: string): {
             continue;
         }
 
-        // Parse this line for footnotes
-        const lineSegments = parseTextIntoSegments(line);
-        const children: (TextRun | FootnoteReferenceRun)[] = [];
-
-        for (const segment of lineSegments) {
-            if (segment.hasFootnote && segment.footnoteId) {
-                // Add footnote reference
-                children.push(new FootnoteReferenceRun(segment.footnoteId));
-            } else if (segment.text) {
-                // Add regular text
-                children.push(new TextRun({
-                    text: segment.text,
-                    font: "Times New Roman",
-                    size: 24 // 12pt
-                }));
+        paragraphs.push(new Paragraph({
+            children: [new TextRun({
+                text: line,
+                font: "Times New Roman",
+                size: 24 // 12pt
+            })],
+            spacing: {
+                after: 200,
+                line: 360
             }
-        }
-
-        if (children.length > 0) {
-            paragraphs.push(new Paragraph({
-                children,
-                spacing: {
-                    after: 200,
-                    line: 360
-                }
-            }));
-        }
+        }));
     }
 
-    return { paragraphs, footnotes };
+    return paragraphs;
 }
 
 /**
- * API route to generate .docx file with REAL Word footnotes
+ * Create footnotes section
+ */
+function createFootnotesSection(footnotes: string[]): Paragraph[] {
+    if (footnotes.length === 0) {
+        return [];
+    }
+
+    const paragraphs: Paragraph[] = [];
+
+    paragraphs.push(new Paragraph({ text: "" }));
+    paragraphs.push(new Paragraph({ text: "" }));
+
+    paragraphs.push(new Paragraph({
+        children: [new TextRun({
+            text: "Footnotes",
+            bold: true,
+            font: "Times New Roman",
+            size: 28
+        })],
+        spacing: {
+            before: 400,
+            after: 200
+        }
+    }));
+
+    paragraphs.push(new Paragraph({
+        children: [new TextRun({
+            text: "________________________________________",
+            size: 20
+        })],
+        spacing: {
+            after: 200
+        }
+    }));
+
+    footnotes.forEach((footnote, index) => {
+        paragraphs.push(new Paragraph({
+            children: [
+                new TextRun({
+                    text: `${index + 1}. `,
+                    bold: true,
+                    font: "Times New Roman",
+                    size: 20
+                }),
+                new TextRun({
+                    text: footnote,
+                    font: "Times New Roman",
+                    size: 20
+                })
+            ],
+            spacing: {
+                after: 100
+            }
+        }));
+    });
+
+    return paragraphs;
+}
+
+/**
+ * API route to generate .docx file
+ * 
+ * NOTE: The docx library version 9.x does not support real Word footnotes
+ * in the same way as Word's native footnote feature. This generates a
+ * formatted footnotes section at the end of the document.
+ * 
+ * For true Word footnotes (appearing at page bottom with clickable references),
+ * a Python backend with python-docx would be required.
  */
 export async function POST(request: NextRequest) {
     try {
@@ -163,7 +168,6 @@ export async function POST(request: NextRequest) {
 
         const { text } = body;
 
-        // Validate word count
         const wordCount = text.trim().split(/\s+/).length;
         if (wordCount > 10000) {
             return NextResponse.json(
@@ -172,50 +176,41 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Validate input
-        if (!text || text.trim().length === 0) {
+        const { mainText, footnotes } = processText(text);
+
+        if (!mainText || mainText.trim().length === 0) {
             return NextResponse.json(
-                { error: 'No valid text found' },
+                { error: 'No valid text found after processing' },
                 { status: 400 }
             );
         }
 
-        // Create document with real footnotes
-        const { paragraphs, footnotes } = createDocumentWithFootnotes(text);
+        const mainParagraphs = createParagraphs(mainText);
+        const footnotesParagraphs = createFootnotesSection(footnotes);
+        const allParagraphs = [...mainParagraphs, ...footnotesParagraphs];
 
-        if (paragraphs.length === 0) {
-            return NextResponse.json(
-                { error: 'No content to generate' },
-                { status: 400 }
-            );
-        }
-
-        // Create the Word document
         const doc = new Document({
-            footnotes: footnotes,
             sections: [{
                 properties: {
                     page: {
                         margin: {
-                            top: 1440,    // 1 inch
+                            top: 1440,
                             right: 1440,
                             bottom: 1440,
                             left: 1440
                         }
                     }
                 },
-                children: paragraphs
+                children: allParagraphs
             }]
         });
 
-        // Generate buffer
         const buffer = await Packer.toBuffer(doc);
 
         if (!buffer || buffer.length === 0) {
             throw new Error('Generated document is empty');
         }
 
-        // Return the .docx file
         return new NextResponse(new Uint8Array(buffer), {
             status: 200,
             headers: {
