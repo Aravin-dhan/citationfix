@@ -1,48 +1,101 @@
-                        <h2 className="text-xl font-semibold mb-3 text-[var(--primary)]">6. Professional Advice Disclaimer</h2>
-                        <p>CitationFix is a formatting tool only. It does not provide legal advice, and use of this service does not create an attorney-client relationship. Always consult with qualified legal professionals for legal matters.</p>
-                    </section >
+'use client';
 
-                    <section>
-                        <h2 className="text-xl font-semibold mb-3 text-[var(--primary)]">7. Indemnification</h2>
-                        <p>You agree to indemnify, defend, and hold harmless the website owner and all related parties from any claims, damages, losses, liabilities, and expenses (including legal fees) arising from your use of the service or violation of these terms.</p>
-                    </section>
+import { ArrowLeft } from 'lucide-react';
 
-                    <section>
-                        <h2 className="text-xl font-semibold mb-3 text-[var(--primary)]">8. Dispute Resolution</h2>
-                        <p className="font-semibold mb-2">Any disputes arising from or related to this service shall be resolved through the following mechanism:</p>
-                        <ul className="list-disc list-inside ml-4 space-y-2 mt-2">
-                            <li><strong>Alternative Dispute Resolution (ADR):</strong> Disputes shall first be attempted to be resolved through mediation or arbitration in Chennai, India</li>
-                            <li><strong>Jurisdiction:</strong> Subject to the exclusive jurisdiction of the Civil Courts of Chennai, Tamil Nadu, India</li>
-                            <li><strong>Governing Law:</strong> These terms shall be governed by the laws of India</li>
-                        </ul>
-                    </section>
+export default function Terms() {
+    return (
+        <div className="min-h-screen bg-[var(--desk-bg)] py-8 px-4 sm:px-6 flex flex-col items-center font-sans transition-colors duration-300">
+            <div className="w-full max-w-4xl bg-[var(--paper-bg)] rounded-sm paper-shadow min-h-[85vh] flex flex-col relative overflow-hidden">
 
-                    <section>
-                        <h2 className="text-xl font-semibold mb-3 text-[var(--primary)]">9. User Responsibilities</h2>
-                        <p>You agree to:</p>
-                        <ul className="list-disc list-inside ml-4 space-y-2 mt-2">
-                            <li>Use the service only for lawful purposes</li>
-                            <li>Not exceed reasonable usage limits (20,000 words per document)</li>
-                            <li>Not attempt to disrupt or interfere with the service</li>
-                            <li>Verify all output before professional or legal use</li>
-                        </ul>
-                    </section>
+                {/* Header */}
+                <header className="border-b border-[var(--line)] px-8 py-6 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-2xl font-serif font-bold text-[var(--ink)]">
+                            Terms of Service
+                        </h1>
+                    </div>
+                    <a href="/" className="flex items-center gap-2 text-sm font-medium text-[var(--ink-muted)] hover:text-[var(--accent)] transition-colors">
+                        <ArrowLeft className="w-4 h-4" />
+                        Back to Editor
+                    </a>
+                </header>
 
-                    <section>
-                        <h2 className="text-xl font-semibold mb-3 text-[var(--primary)]">10. Modifications to Service</h2>
-                        <p>We reserve the right to modify or discontinue the service at any time without notice. We shall not be liable to you or any third party for any modification, suspension, or discontinuance of the service.</p>
-                    </section>
+                {/* Content */}
+                <div className="flex-1 p-8 md:p-12 overflow-y-auto">
+                    <div className="prose prose-stone max-w-none text-[var(--ink)]">
+                        <p className="lead text-lg text-[var(--ink-muted)] mb-8">
+                            Last updated: November 24, 2025
+                        </p>
 
-                    <section>
-                        <h2 className="text-xl font-semibold mb-3 text-[var(--primary)]">11. Changes to Terms</h2>
-                        <p>We reserve the right to update these Terms of Service at any time. Continued use of the service after changes constitutes acceptance of the new terms.</p>
-                    </section>
+                        <section className="space-y-6">
+                            <div>
+                                <h2 className="text-xl font-bold font-serif mb-3 text-[var(--ink)]">1. Acceptance of Terms</h2>
+                                <p className="text-[var(--ink)] leading-relaxed">
+                                    By accessing and using CitationFix, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our service.
+                                </p>
+                            </div>
 
-                    <p className="text-sm text-[var(--text-muted)] pt-6 border-t border-[var(--border)]">
-                        Last updated: {new Date().toLocaleDateString()}
-                    </p>
-                </div >
-            </main >
-        </div >
+                            <div>
+                                <h2 className="text-xl font-bold font-serif mb-3 text-[var(--ink)]">2. Description of Service</h2>
+                                <p className="text-[var(--ink)] leading-relaxed">
+                                    CitationFix provides automated document formatting and citation conversion tools for legal professionals and students. The service is provided on an "as is" and "as available" basis.
+                                </p>
+                            </div>
+
+                            <div>
+                                <h2 className="text-xl font-bold font-serif mb-3 text-[var(--ink)]">3. User Responsibilities</h2>
+                                <p className="text-[var(--ink)] leading-relaxed">
+                                    You are solely responsible for the content you upload and process using CitationFix. You agree not to upload any content that is illegal, violates intellectual property rights, or contains malicious code. You acknowledge that you retain full ownership and responsibility for your documents.
+                                </p>
+                            </div>
+
+                            <div className="p-6 bg-[var(--accent-light)]/30 border border-[var(--line)] rounded-sm">
+                                <h2 className="text-xl font-bold font-serif mb-3 text-[var(--ink)]">4. Limitation of Liability</h2>
+                                <p className="text-[var(--ink)] leading-relaxed mb-4">
+                                    TO THE FULLEST EXTENT PERMITTED BY LAW, CITATIONFIX AND ITS DEVELOPERS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS OR REVENUES, WHETHER INCURRED DIRECTLY OR INDIRECTLY, OR ANY LOSS OF DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES, RESULTING FROM:
+                                </p>
+                                <ul className="list-disc pl-5 space-y-2 text-[var(--ink)]">
+                                    <li>YOUR USE OR INABILITY TO USE THE SERVICE;</li>
+                                    <li>ANY ERRORS OR INACCURACIES IN THE OUTPUT GENERATED BY THE SERVICE;</li>
+                                    <li>UNAUTHORIZED ACCESS TO OR USE OF OUR SERVERS AND/OR ANY PERSONAL INFORMATION STORED THEREIN.</li>
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h2 className="text-xl font-bold font-serif mb-3 text-[var(--ink)]">5. No Legal Advice</h2>
+                                <p className="text-[var(--ink)] leading-relaxed">
+                                    CitationFix is a formatting tool, not a legal advisor. The output generated by our service does not constitute legal advice or opinion. You should always review and verify the formatted documents for accuracy and compliance with specific court rules or citation standards.
+                                </p>
+                            </div>
+
+                            <div>
+                                <h2 className="text-xl font-bold font-serif mb-3 text-[var(--ink)]">6. Dispute Resolution</h2>
+                                <p className="text-[var(--ink)] leading-relaxed">
+                                    Any disputes arising out of or related to these Terms or the Service shall be resolved through binding arbitration or Alternative Dispute Resolution (ADR) mechanisms in <strong>Chennai, India</strong>, in accordance with the laws of India. You agree to submit to the personal jurisdiction of the courts located within Chennai, India, for the purpose of litigating all such claims or disputes.
+                                </p>
+                            </div>
+
+                            <div>
+                                <h2 className="text-xl font-bold font-serif mb-3 text-[var(--ink)]">7. Changes to Terms</h2>
+                                <p className="text-[var(--ink)] leading-relaxed">
+                                    We reserve the right to modify these terms at any time. We will notify users of any significant changes by posting the new terms on this page. Your continued use of the service after such changes constitutes your acceptance of the new terms.
+                                </p>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+
+                {/* Footer */}
+                <footer className="border-t border-[var(--line)] px-8 py-4 bg-[var(--paper-bg)]">
+                    <div className="flex items-center justify-between text-xs text-[var(--ink-muted)]">
+                        <p>© 2025 CitationFix. All rights reserved.</p>
+                        <div className="flex gap-6">
+                            <a href="/privacy" className="hover:text-[var(--accent)] transition-colors">Privacy Policy</a>
+                            <a href="/feedback" className="hover:text-[var(--accent)] transition-colors">Contact Us</a>
+                        </div>
+                    </div>
+                </footer>
+            </div>
+        </div>
     );
 }
