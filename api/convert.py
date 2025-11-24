@@ -147,19 +147,28 @@ class handler(BaseHTTPRequestHandler):
                                             fn_paras = [Paragraph(p, p.getparent()) for p in footnote.findall(ns.qn('w:p'))]
 
                                         if fn_paras:
-                                            fn_para = fn_paras[0]
-                                            fn_para.style = doc.styles['Footnote Text']
-                                            
-                                            # Enforce strict legal footnote formatting:
-                                            # Font: Times New Roman, Size 10
-                                            # Spacing: Single (1.0), No space before/after
-                                            fn_para.paragraph_format.line_spacing = 1.0
-                                            fn_para.paragraph_format.space_after = Pt(0)
-                                            fn_para.paragraph_format.space_before = Pt(0)
-                                            
-                                            for run in fn_para.runs:
-                                                run.font.name = 'Times New Roman'
-                                                run.font.size = Pt(10)
+                                            for fn_para in fn_paras:
+                                                # Apply style first
+                                                try:
+                                                    fn_para.style = doc.styles['Footnote Text']
+                                                except KeyError:
+                                                    pass # Fallback to direct formatting if style missing
+
+                                                # Enforce strict legal footnote formatting on PARAGRAPH
+                                                # Spacing: Single (1.0), No space before/after
+                                                fn_para.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
+                                                fn_para.paragraph_format.space_after = Pt(0)
+                                                fn_para.paragraph_format.space_before = Pt(0)
+                                                
+                                                # Enforce strict legal footnote formatting on RUNS
+                                                # Font: Times New Roman, Size 10
+                                                if fn_para.runs:
+                                                    for run in fn_para.runs:
+                                                        run.font.name = 'Times New Roman'
+                                                        run.font.size = Pt(10)
+                                                else:
+                                                    # If no runs (unlikely), try to add one or just pass
+                                                    pass
                                     except Exception as fn_error:
                                         print(f"Warning: Could not format footnote: {fn_error}")
                         else:
