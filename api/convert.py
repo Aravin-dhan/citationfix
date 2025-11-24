@@ -98,9 +98,11 @@ class handler(BaseHTTPRequestHandler):
             if apply_formatting:
                 try:
                     footnote_style = doc.styles['Footnote Text']
-                    footnote_style.font.name = font_name
+                    footnote_style.font.name = 'Times New Roman'
                     footnote_style.font.size = Pt(10) # Footnotes usually smaller
                     footnote_style.paragraph_format.line_spacing = 1.0 # Footnotes usually single spaced
+                    footnote_style.paragraph_format.space_after = Pt(0)
+                    footnote_style.paragraph_format.space_before = Pt(0)
                 except KeyError:
                     pass
 
@@ -147,8 +149,16 @@ class handler(BaseHTTPRequestHandler):
                                         if fn_paras:
                                             fn_para = fn_paras[0]
                                             fn_para.style = doc.styles['Footnote Text']
+                                            
+                                            # Enforce strict legal footnote formatting:
+                                            # Font: Times New Roman, Size 10
+                                            # Spacing: Single (1.0), No space before/after
+                                            fn_para.paragraph_format.line_spacing = 1.0
+                                            fn_para.paragraph_format.space_after = Pt(0)
+                                            fn_para.paragraph_format.space_before = Pt(0)
+                                            
                                             for run in fn_para.runs:
-                                                run.font.name = font_name
+                                                run.font.name = 'Times New Roman'
                                                 run.font.size = Pt(10)
                                     except Exception as fn_error:
                                         print(f"Warning: Could not format footnote: {fn_error}")
