@@ -135,6 +135,9 @@ export default function Home() {
     }
   };
 
+  // Preview State
+  const [showPreview, setShowPreview] = useState(false);
+
   return (
     <div className="flex h-screen w-full bg-[var(--app-bg)] overflow-hidden font-sans text-[var(--ink)]">
 
@@ -246,7 +249,14 @@ export default function Home() {
         </div>
 
         {/* Footer Action */}
-        <div className="p-6 border-t border-[var(--sidebar-border)] bg-[var(--sidebar-bg)]">
+        <div className="p-6 border-t border-[var(--sidebar-border)] bg-[var(--sidebar-bg)] space-y-3">
+          <button
+            onClick={() => setShowPreview(true)}
+            disabled={!inputText.trim()}
+            className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-semibold border border-slate-700 flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <FileText className="w-4 h-4" /> Preview
+          </button>
           <button
             onClick={handleDownloadDocx}
             disabled={!inputText.trim() || isDownloading}
@@ -321,6 +331,55 @@ export default function Home() {
         </div>
 
       </main>
+
+      {/* 3. PREVIEW MODAL */}
+      {showPreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-4xl h-[85vh] rounded-xl shadow-2xl flex flex-col overflow-hidden">
+            <div className="h-14 border-b border-slate-200 flex items-center justify-between px-6 bg-slate-50">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-[var(--accent)]" /> Document Preview
+              </h3>
+              <button onClick={() => setShowPreview(false)} className="text-slate-400 hover:text-slate-600">Close</button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-8 bg-slate-100 custom-scrollbar">
+              <div className="bg-white shadow-lg max-w-[816px] min-h-[1000px] mx-auto p-16 font-serif text-lg leading-loose text-black">
+                {inputText.split('\n').map((para, i) => {
+                  if (!para.trim()) return <br key={i} />;
+
+                  // Simulate Citation Conversion
+                  let content = para;
+                  const footnotes: string[] = [];
+                  if (useCitations) {
+                    content = content.replace(/\{\{fn:(.*?)\}\}/g, (_, citation) => {
+                      footnotes.push(citation);
+                      return `<sup class="text-[10px] align-super text-blue-600 font-bold">[${footnotes.length}]</sup>`;
+                    });
+                  }
+
+                  return (
+                    <div key={i} className="mb-4 text-justify">
+                      <span dangerouslySetInnerHTML={{ __html: content }} />
+                      {/* Simulate Footnotes at bottom of paragraph (simplified for preview) */}
+                      {footnotes.length > 0 && (
+                        <div className="mt-2 pt-2 border-t border-slate-200 text-xs leading-tight text-slate-600">
+                          {footnotes.map((fn, idx) => (
+                            <div key={idx} className="flex gap-1">
+                              <span className="font-bold">{idx + 1}.</span>
+                              <span>{fn}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

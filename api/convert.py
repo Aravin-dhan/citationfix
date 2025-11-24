@@ -185,6 +185,9 @@ class handler(BaseHTTPRequestHandler):
             self.wfile.write(docx_content)
 
         except Exception as e:
+            import traceback
+            traceback.print_exc()
+            print(f"ERROR in convert.py: {str(e)}")
             self.send_response(500)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
