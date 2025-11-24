@@ -2,7 +2,9 @@
 
 import { useState, useRef, ChangeEvent } from 'react';
 import { processText, formatFootnotes } from '@/utils/converter';
-import { parseFile, countWords, validateWordLimit } from '@/utils/fileParser';
+import { parseFile, validateWordLimit } from '@/utils/fileParser';
+import ThemeToggle from './components/ThemeToggle';
+import Tutorial from './components/Tutorial';
 
 const MAX_WORDS = 10000;
 
@@ -18,6 +20,7 @@ export default function Home() {
   const [copiedFootnotes, setCopiedFootnotes] = useState(false);
   const [copiedPrompt, setCopiedPrompt] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -33,12 +36,15 @@ export default function Home() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setIsProcessing(true);
     try {
       setErrorMessage('');
       const text = await parseFile(file);
       handleTextChange(text);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Failed to parse file');
+    } finally {
+      setIsProcessing(false);
     }
 
     // Reset file input
@@ -169,8 +175,8 @@ export default function Home() {
                 Document Text
               </label>
               <span className={`text-xs px-2 py-0.5 rounded-full border ${wordCount > 10000
-                  ? 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800'
-                  : 'bg-[var(--background)] text-[var(--text-muted)] border-[var(--border)]'
+                ? 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800'
+                : 'bg-[var(--background)] text-[var(--text-muted)] border-[var(--border)]'
                 }`}>
                 {wordCount.toLocaleString()} / 10,000 words
               </span>
@@ -189,8 +195,8 @@ export default function Home() {
               <label
                 htmlFor="file-upload"
                 className={`cursor-pointer px-3 py-1.5 rounded text-xs font-medium border transition-colors flex items-center gap-1.5 ${isProcessing
-                    ? 'bg-[var(--background)] text-[var(--text-muted)] border-[var(--border)] opacity-50 cursor-not-allowed'
-                    : 'bg-[var(--background)] text-[var(--foreground)] border-[var(--border)] hover:bg-[var(--border)]'
+                  ? 'bg-[var(--background)] text-[var(--text-muted)] border-[var(--border)] opacity-50 cursor-not-allowed'
+                  : 'bg-[var(--background)] text-[var(--foreground)] border-[var(--border)] hover:bg-[var(--border)]'
                   }`}
               >
                 {isProcessing ? (
