@@ -1,36 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Document, Paragraph, TextRun, Packer, HeadingLevel } from 'docx';
+import {
+    Document,
+    Paragraph,
+    TextRun,
+    Packer,
+    FootnoteReferenceRun,
+    Footnote
+} from 'docx';
 
 interface ConversionResult {
     mainText: string;
     footnotes: string[];
+    positions: number[];
 }
 
 /**
- * Process text and extract footnotes (server-side version)
+ * Process text and track footnote positions
  */
-function processText(input: string): ConversionResult {
+function processTextWithPositions(input: string): ConversionResult {
     const footnotes: string[] = [];
+    const positions: number[] = [];
     let output = "";
     let i = 0;
+    let charPosition = 0;
 
     if (!input || input.trim().length === 0) {
-        return { mainText: "", footnotes: [] };
+        return { mainText: "", footnotes: [], positions: [] };
     }
 
     while (i < input.length) {
         const start = input.indexOf("{{fn:", i);
 
         if (start === -1) {
-            output += input.slice(i);
+            const remaining = input.slice(i);
+            output += remaining;
+            charPosition += remaining.length;
             break;
         }
 
-        output += input.slice(i, start);
+        const beforeMarker = input.slice(i, start);
+        output += beforeMarker;
+        charPosition += beforeMarker.length;
+
         const end = input.indexOf("}}", start);
 
         if (end === -1) {
-            output += input.slice(start);
+            const remaining = input.slice(start);
+            output += remaining;
+            charPosition += remaining.length;
             break;
         }
 
@@ -39,105 +56,122 @@ function processText(input: string): ConversionResult {
 
         if (citation.length > 0) {
             footnotes.push(citation);
+            positions.push(charPosition);
         }
 
         i = end + 2;
     }
 
-    return { mainText: output, footnotes };
+    return { mainText: output, footnotes, positions };
 }
 
 /**
- * Create Word paragraphs from text
+ * Create paragraphs with real Word footnote references
  */
-function createParagraphs(text: string): Paragraph[] {
-    if (!text || text.trim().length === 0) {
-        return [new Paragraph({ text: "" })];
-    }
+function createParagraphsWithFootnotes(
+    text: string,
+    footnotes: string[],
+    positions: number[]
+): { paragraphs: Paragraph[], footnoteObjects: Footnote[] } {
 
+    const footnoteObjects: Footnote[] = [];
     const paragraphs: Paragraph[] = [];
+
+    // Create footnote objects
+    footnotes.forEach((citation, index) => {
+        footnoteObjects.push(
+            new Footnote({
+                id: index + 1,
+                children: [
+                    new Paragraph({
+                        children: [
+                            new TextRun({
+                                text: citation,
+                                font: "Times New Roman",
+                                size: 20 // 10pt
+                            })
+                        ]
+                    })
+                ]
+            })
+        );
+    });
+
+    // Split text into paragraphs
     const lines = text.split('\n');
+    let currentCharPosition = 0;
+    let footnoteIndex = 0;
 
     for (const line of lines) {
         if (line.trim().length === 0) {
             paragraphs.push(new Paragraph({ text: "" }));
+            currentCharPosition += 1; // newline character
             continue;
         }
 
-        paragraphs.push(new Paragraph({
-            children: [new TextRun({
+        const children: (TextRun | FootnoteReferenceRun)[] = [];
+        let linePosition = 0;
+
+        // Check if this line contains any footnote positions
+        while (linePosition < line.length) {
+            // Find next footnote position in this line
+            const nextFootnotePos = positions[footnoteIndex];
+            const relativePos = nextFootnotePos - currentCharPosition;
+
+            if (footnoteIndex < footnotes.length &&
+                relativePos >= linePosition &&
+                relativePos <= line.length) {
+
+                // Add text before footnote
+                if (relativePos > linePosition) {
+                    children.push(new TextRun({
+                        text: line.slice(linePosition, relativePos),
+                        font: "Times New Roman",
+                        size: 24
+                    }));
+                }
+
+                // Add footnote reference
+                children.push(new FootnoteReferenceRun(footnoteIndex + 1));
+
+                linePosition = relativePos;
+                footnoteIndex++;
+            } else {
+                // No more footnotes in this line, add remaining text
+                children.push(new TextRun({
+                    text: line.slice(linePosition),
+                    font: "Times New Roman",
+                    size: 24
+                }));
+                break;
+            }
+        }
+
+        // If no footnotes were found in this line, just add the text
+        if (children.length === 0) {
+            children.push(new TextRun({
                 text: line,
                 font: "Times New Roman",
-                size: 24 // 12pt
-            })],
+                size: 24
+            }));
+        }
+
+        paragraphs.push(new Paragraph({
+            children,
             spacing: {
                 after: 200,
                 line: 360
             }
         }));
+
+        currentCharPosition += line.length + 1; // +1 for newline
     }
 
-    return paragraphs;
+    return { paragraphs, footnoteObjects };
 }
 
 /**
- * Create footnotes section
- */
-function createFootnotesSection(footnotes: string[]): Paragraph[] {
-    if (footnotes.length === 0) {
-        return [];
-    }
-
-    const paragraphs: Paragraph[] = [];
-
-    paragraphs.push(new Paragraph({ text: "" }));
-    paragraphs.push(new Paragraph({ text: "" }));
-
-    paragraphs.push(new Paragraph({
-        text: "Footnotes",
-        heading: HeadingLevel.HEADING_1,
-        spacing: {
-            before: 400,
-            after: 200
-        }
-    }));
-
-    paragraphs.push(new Paragraph({
-        children: [new TextRun({
-            text: "________________________________________",
-            size: 20
-        })],
-        spacing: {
-            after: 200
-        }
-    }));
-
-    footnotes.forEach((footnote, index) => {
-        paragraphs.push(new Paragraph({
-            children: [
-                new TextRun({
-                    text: `${index + 1}. `,
-                    bold: true,
-                    font: "Times New Roman",
-                    size: 20
-                }),
-                new TextRun({
-                    text: footnote,
-                    font: "Times New Roman",
-                    size: 20
-                })
-            ],
-            spacing: {
-                after: 100
-            }
-        }));
-    });
-
-    return paragraphs;
-}
-
-/**
- * API route to generate .docx file
+ * API route to generate .docx file with REAL Word footnotes
  */
 export async function POST(request: NextRequest) {
     try {
@@ -160,7 +194,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const { mainText, footnotes } = processText(text);
+        const { mainText, footnotes, positions } = processTextWithPositions(text);
 
         if (!mainText || mainText.trim().length === 0) {
             return NextResponse.json(
@@ -169,11 +203,17 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const mainParagraphs = createParagraphs(mainText);
-        const footnotesParagraphs = createFootnotesSection(footnotes);
-        const allParagraphs = [...mainParagraphs, ...footnotesParagraphs];
+        const { paragraphs, footnoteObjects } = createParagraphsWithFootnotes(
+            mainText,
+            footnotes,
+            positions
+        );
 
+        // Create document with real footnotes
         const doc = new Document({
+            footnotes: Object.fromEntries(
+                footnoteObjects.map((fn, idx) => [idx + 1, fn])
+            ),
             sections: [{
                 properties: {
                     page: {
@@ -185,7 +225,7 @@ export async function POST(request: NextRequest) {
                         }
                     }
                 },
-                children: allParagraphs
+                children: paragraphs
             }]
         });
 
