@@ -3,47 +3,61 @@
 @tailwind utilities;
 
 :root {
-  /* Parchment / Paper Theme */
-  --desk-bg: #E3E0D6;
-  /* Muted darker beige for the background "desk" */
-  --paper-bg: #FDFBF7;
-  /* Clean warm white/cream for the "paper" */
-  --ink: #1A1A1A;
-  /* Near black for text */
-  --ink-muted: #5A5A5A;
-  /* Dark grey for secondary text */
-  --line: #D8D4C9;
-  /* Subtle borders */
+  /* DocHub-inspired Theme: Modern, Clean, High Contrast */
 
-  --accent: #8B7355;
-  /* Antique Bronze/Brown */
-  --accent-hover: #6D5A43;
-  --accent-light: #F0EBE5;
-  /* Very light brown for backgrounds */
+  /* App Shell Colors */
+  --app-bg: #F3F4F6;
+  /* Light gray background for the workspace */
+  --header-bg: #2B2B2B;
+  /* Dark charcoal for the main header */
+  --header-text: #FFFFFF;
 
-  --error: #8B4513;
-  /* Saddle Brown for errors (keeping with earth tones) */
+  /* Document / Paper */
+  --paper-bg: #FFFFFF;
+  /* Pure white for the document */
+  --paper-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 
+  /* Typography & Ink */
+  --ink: #111827;
+  /* Gray-900 for primary text */
+  --ink-muted: #6B7280;
+  /* Gray-500 for secondary text */
+  --border: #E5E7EB;
+  /* Gray-200 for borders */
+
+  /* Accents (Legal/Professional) */
+  --primary: #3B82F6;
+  /* Standard Blue for primary actions (DocHub style) */
+  --primary-hover: #2563EB;
+  --accent: #D97706;
+  /* Amber/Gold for "Legal" highlights */
+
+  /* Status */
+  --success: #10B981;
+  --error: #EF4444;
+
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-serif: "Times New Roman", Times, serif;
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* Kept for the document content itself */
 }
 
 .dark {
-  /* Dark Mode - Dark Leather/Slate */
-  --desk-bg: #1A1816;
-  --paper-bg: #2C2824;
-  /* Dark brown/grey paper */
-  --ink: #E8E6E3;
-  /* Off-white text */
-  --ink-muted: #A8A6A3;
-  --line: #4A453E;
+  /* Dark Mode - Modern Dark UI */
+  --app-bg: #1F2937;
+  /* Gray-800 */
+  --header-bg: #111827;
+  /* Gray-900 */
+  --header-text: #F9FAFB;
 
-  --accent: #C2B280;
-  /* Sand/Gold */
-  --accent-hover: #D4C495;
-  --accent-light: #3D3832;
+  --paper-bg: #374151;
+  /* Gray-700 for the paper in dark mode */
+  --ink: #F9FAFB;
+  --ink-muted: #9CA3AF;
+  --border: #4B5563;
 
-  --error: #CD853F;
+  --primary: #60A5FA;
+  --primary-hover: #3B82F6;
+  --accent: #F59E0B;
 }
 
 * {
@@ -54,25 +68,15 @@
 
 body {
   font-family: var(--font-sans);
-  background-color: var(--desk-bg);
+  background-color: var(--app-bg);
   color: var(--ink);
-  line-height: 1.6;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  line-height: 1.5;
 }
 
-/* Typography classes */
-.font-serif {
-  font-family: var(--font-serif);
-}
-
-.font-sans {
-  font-family: var(--font-sans);
-}
-
-/* Custom scrollbar */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -80,34 +84,35 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--line);
-  border-radius: 3px;
+  background: #CBD5E1;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--accent);
+  background: #94A3B8;
 }
 
-/* Paper Shadow Effect */
-.paper-shadow {
+/* DocHub-style Paper Shadow */
+.doc-shadow {
   box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.05),
-    0 2px 4px -1px rgba(0, 0, 0, 0.03),
-    0 20px 25px -5px rgba(0, 0, 0, 0.05),
-    0 8px 10px -6px rgba(0, 0, 0, 0.01);
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+  /* Subtle border ring */
 }
 
-/* Animations */
-@keyframes fade-in {
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
   from {
     opacity: 0;
+    transform: translateY(-5px);
   }
 
   to {
     opacity: 1;
+    transform: translateY(0);
   }
-}
-
-.animate-fade-in {
-  animation: fade-in 0.4s ease-out;
 }
