@@ -120,12 +120,29 @@ class handler(BaseHTTPRequestHandler):
                                 
                                 # Format the footnote text if needed
                                 if apply_formatting:
-                                    if footnote.paragraphs:
-                                        fn_para = footnote.paragraphs[0]
-                                        fn_para.style = doc.styles['Footnote Text']
-                                        for run in fn_para.runs:
-                                            run.font.name = 'Times New Roman'
-                                            run.font.size = Pt(10)
+                                    # In some versions, add_footnote returns a proxy, in others an oxml element
+                                    # We need to ensure we are accessing paragraphs correctly
+                                    try:
+                                        # Try accessing paragraphs directly (proxy object)
+                                        if hasattr(footnote, 'paragraphs'):
+                                            fn_paras = footnote.paragraphs
+                                        else:
+                                            # If it's an oxml element, we might need to wrap it or access xml children
+                                            # For now, let's try to assume it might be a proxy that just needs a refresh or 
+                                            # it's a different structure. 
+                                            # Actually, if it's CT_Footnote, we can't easily wrap it without internal classes.
+                                            # Let's try to find the paragraph element within it.
+                                            from docx.text.paragraph import Paragraph
+                                            fn_paras = [Paragraph(p, p.getparent()) for p in footnote.findall(ns.qn('w:p'))]
+
+                                        if fn_paras:
+                                            fn_para = fn_paras[0]
+                                            fn_para.style = doc.styles['Footnote Text']
+                                            for run in fn_para.runs:
+                                                run.font.name = 'Times New Roman'
+                                                run.font.size = Pt(10)
+                                    except Exception as fn_error:
+                                        print(f"Warning: Could not format footnote: {fn_error}")
                         else:
                             # Regular text
                             if part:

@@ -31,15 +31,18 @@ export async function POST(request: Request) {
     const encryptedData = CryptoJS.AES.encrypt(JSON.stringify(metric), ENCRYPTION_KEY).toString();
 
     // 3. Store in Vercel KV (Redis)
-    // We'll use a list to store logs
-    try {
-      await kv.lpush('metrics_logs', encryptedData);
-      // Keep only last 1000 logs to save space
-      await kv.ltrim('metrics_logs', 0, 999);
-    } catch (kvError) {
-      console.warn('KV Logger failed (likely missing env vars), falling back to console:', kvError);
+    // Check if KV is configured
+    if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+      try {
+        await kv.lpush('metrics_logs', encryptedData);
+        // Keep only last 1000 logs to save space
+        await kv.ltrim('metrics_logs', 0, 999);
+      } catch (kvError) {
+        console.warn('KV Logger failed:', kvError);
+      }
+    } else {
       // In dev/local without KV, we just log the encrypted string to console for verification
-      console.log('[SECURE_LOG]', encryptedData);
+      console.log('[SECURE_LOG (Local)]', encryptedData);
     }
 
     return NextResponse.json({ success: true });
