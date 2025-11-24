@@ -116,6 +116,7 @@ export default function Home() {
     setErrorMessage('');
 
     try {
+      const startTime = Date.now();
       const response = await fetch('/api/convert', {
         method: 'POST',
         headers: {
@@ -127,6 +128,21 @@ export default function Home() {
           convert_citations: useCitations
         }),
       });
+
+      const processingTime = Date.now() - startTime;
+
+      // Log metrics (fire and forget)
+      fetch('/api/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wordCount,
+          processingTimeMs: processingTime,
+          features: { citations: useCitations, formatting: useFormatting },
+          status: response.ok ? 'success' : 'error',
+          errorType: response.ok ? undefined : 'api_error'
+        })
+      }).catch(console.error);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -208,8 +224,8 @@ export default function Home() {
               <button
                 onClick={() => setUseCitations(!useCitations)}
                 className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${useCitations
-                    ? 'bg-[var(--paper-bg)] text-[var(--ink)] shadow-sm border border-[var(--line)]'
-                    : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                  ? 'bg-[var(--paper-bg)] text-[var(--ink)] shadow-sm border border-[var(--line)]'
+                  : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
                   }`}
                 title="Convert {{fn: ...}} to footnotes (Ctrl+1)"
               >
@@ -221,8 +237,8 @@ export default function Home() {
               <button
                 onClick={() => setUseFormatting(!useFormatting)}
                 className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${useFormatting
-                    ? 'bg-[var(--paper-bg)] text-[var(--ink)] shadow-sm border border-[var(--line)]'
-                    : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                  ? 'bg-[var(--paper-bg)] text-[var(--ink)] shadow-sm border border-[var(--line)]'
+                  : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
                   }`}
                 title="Apply Legal Formatting (Ctrl+2)"
               >
