@@ -3,8 +3,6 @@
 import { useState, useRef, ChangeEvent, useEffect } from 'react';
 import { validateWordLimit } from '@/utils/fileParser';
 import { parseFile } from '@/utils/fileParser';
-import ThemeToggle from './components/ThemeToggle';
-import Tutorial from './components/Tutorial';
 import {
   Upload,
   Download,
@@ -14,16 +12,17 @@ import {
   Copy,
   Check,
   Info,
-  Keyboard,
-  AlertCircle,
   Settings,
-  Menu
+  Sparkles,
+  AlertCircle,
+  ChevronRight
 } from 'lucide-react';
 
 const MAX_WORDS = 20000;
 const AI_PROMPT = `When providing citations in your response, format them using {{fn: citation}} markers. For example: "This principle is well established.{{fn: Smith v. Jones, 123 F.3d 456 (2020)}}" - This allows for easy conversion to proper legal footnotes.`;
 
 export default function Home() {
+  // State
   const [inputText, setInputText] = useState('');
   const [wordCount, setWordCount] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
@@ -31,37 +30,16 @@ export default function Home() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Configuration
   const [useCitations, setUseCitations] = useState(true);
   const [useFormatting, setUseFormatting] = useState(false);
-  const [showTips, setShowTips] = useState(false);
+  const [showAiPrompt, setShowAiPrompt] = useState(true);
 
+  // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
-        e.preventDefault();
-        if (inputText.trim() && (useCitations || useFormatting)) handleDownloadDocx();
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key === 'u') {
-        e.preventDefault();
-        fileInputRef.current?.click();
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key === '1') {
-        e.preventDefault();
-        setUseCitations(!useCitations);
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key === '2') {
-        e.preventDefault();
-        setUseFormatting(!useFormatting);
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [inputText, useCitations, useFormatting]);
-
+  // Handlers
   const handleTextChange = (text: string) => {
     setInputText(text);
     const validation = validateWordLimit(text, MAX_WORDS);
@@ -105,6 +83,7 @@ export default function Home() {
       });
 
       const processingTime = Date.now() - startTime;
+      // Fire-and-forget logging
       fetch('/api/log', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -157,157 +136,190 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[var(--app-bg)] overflow-hidden font-sans">
-      <Tutorial />
+    <div className="flex h-screen w-full bg-[var(--app-bg)] overflow-hidden font-sans text-[var(--ink)]">
 
-      {/* Top Navigation Bar (DocHub Style) */}
-      <header className="h-16 bg-[var(--header-bg)] text-[var(--header-text)] flex items-center justify-between px-6 shadow-md z-10 flex-shrink-0" style={{ gap: '1rem' }}>
-        <div className="flex items-center gap-4 min-w-0">
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <div className="bg-[var(--primary)] p-1.5 rounded-md">
+      {/* 1. SIDEBAR (Fixed Left Panel) */}
+      <aside className="w-72 bg-[var(--sidebar-bg)] border-r border-[var(--sidebar-border)] flex flex-col flex-shrink-0 z-20 shadow-xl">
+
+        {/* Brand Header */}
+        <div className="h-16 flex items-center px-6 border-b border-[var(--sidebar-border)]">
+          <div className="flex items-center gap-2.5">
+            <div className="bg-[var(--accent)] p-1.5 rounded-lg shadow-lg shadow-blue-900/20">
               <FileText className="w-5 h-5 text-white" />
             </div>
-            <h1 className="text-lg font-bold tracking-tight hidden sm:block">CitationFix</h1>
+            <span className="text-lg font-bold text-[var(--sidebar-text)] tracking-tight">CitationFix</span>
           </div>
-          <div className="h-6 w-px bg-gray-600 mx-2 hidden sm:block" />
-          <div className="flex items-center gap-2">
+        </div>
+
+        {/* Scrollable Controls Area */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
+
+          {/* Primary Action: Upload */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--sidebar-text-muted)]">Input</h3>
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-gray-700 hover:bg-gray-600 rounded transition-colors whitespace-nowrap"
-            >
-              <Upload className="w-4 h-4" /> <span className="hidden sm:inline">Upload</span>
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              accept=".txt,.docx"
-              onChange={handleFileUpload}
               disabled={isProcessing}
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4" style={{ gap: '1rem' }}>
-          {/* Action Toggles */}
-          <div className="flex bg-gray-800 rounded-md p-1 border border-gray-700 gap-1" style={{ gap: '0.25rem' }}>
-            <button
-              onClick={() => setUseCitations(!useCitations)}
-              className={`px-3 py-1.5 rounded text-sm font-medium flex items-center gap-2 transition-all ${useCitations ? 'bg-[var(--primary)] text-white shadow-sm' : 'text-gray-400 hover:text-white'
-                }`}
-              title="Convert {{fn: ...}} to footnotes"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[var(--sidebar-hover)] hover:bg-[var(--sidebar-border)] text-[var(--sidebar-text)] rounded-lg border border-[var(--sidebar-border)] transition-all group"
             >
-              <Quote className="w-3.5 h-3.5" /> <span className="hidden md:inline">Citations</span>
+              {isProcessing ? (
+                <div className="w-4 h-4 border-2 border-[var(--sidebar-text)] border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Upload className="w-4 h-4 text-[var(--sidebar-text-muted)] group-hover:text-white transition-colors" />
+              )}
+              <span className="font-medium">Upload Document</span>
             </button>
+            <input ref={fileInputRef} type="file" className="hidden" accept=".txt,.docx" onChange={handleFileUpload} />
+            <p className="text-[10px] text-[var(--sidebar-text-muted)] text-center">Supports .docx and .txt (Max 20k words)</p>
+          </div>
+
+          {/* Settings / Toggles */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--sidebar-text-muted)]">Configuration</h3>
+
+            {/* Toggle: Citations */}
+            <label className="flex items-center justify-between p-3 rounded-lg bg-[var(--sidebar-hover)]/50 border border-[var(--sidebar-border)] cursor-pointer hover:border-[var(--sidebar-text-muted)] transition-colors">
+              <div className="flex items-center gap-3">
+                <div className={`p-1.5 rounded ${useCitations ? 'bg-[var(--accent)]/20 text-[var(--accent)]' : 'bg-slate-800 text-slate-500'}`}>
+                  <Quote className="w-4 h-4" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-[var(--sidebar-text)]">Convert Citations</span>
+                  <span className="text-[10px] text-[var(--sidebar-text-muted)]">{"{{fn: ...}}"} → Footnotes</span>
+                </div>
+              </div>
+              <div className={`w-10 h-5 rounded-full relative transition-colors ${useCitations ? 'bg-[var(--accent)]' : 'bg-slate-700'}`}>
+                <input type="checkbox" className="hidden" checked={useCitations} onChange={(e) => setUseCitations(e.target.checked)} />
+                <div className={`absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-transform ${useCitations ? 'translate-x-5' : 'translate-x-0'}`} />
+              </div>
+            </label>
+
+            {/* Toggle: Formatting */}
+            <label className="flex items-center justify-between p-3 rounded-lg bg-[var(--sidebar-hover)]/50 border border-[var(--sidebar-border)] cursor-pointer hover:border-[var(--sidebar-text-muted)] transition-colors">
+              <div className="flex items-center gap-3">
+                <div className={`p-1.5 rounded ${useFormatting ? 'bg-[var(--accent)]/20 text-[var(--accent)]' : 'bg-slate-800 text-slate-500'}`}>
+                  <AlignLeft className="w-4 h-4" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-[var(--sidebar-text)]">Legal Formatting</span>
+                  <span className="text-[10px] text-[var(--sidebar-text-muted)]">Times New Roman, 1.5</span>
+                </div>
+              </div>
+              <div className={`w-10 h-5 rounded-full relative transition-colors ${useFormatting ? 'bg-[var(--accent)]' : 'bg-slate-700'}`}>
+                <input type="checkbox" className="hidden" checked={useFormatting} onChange={(e) => setUseFormatting(e.target.checked)} />
+                <div className={`absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-transform ${useFormatting ? 'translate-x-5' : 'translate-x-0'}`} />
+              </div>
+            </label>
+          </div>
+
+          {/* AI Helper */}
+          <div className="space-y-3">
             <button
-              onClick={() => setUseFormatting(!useFormatting)}
-              className={`px-3 py-1.5 rounded text-sm font-medium flex items-center gap-2 transition-all ${useFormatting ? 'bg-[var(--primary)] text-white shadow-sm' : 'text-gray-400 hover:text-white'
-                }`}
-              title="Apply Legal Formatting"
+              onClick={() => setShowAiPrompt(!showAiPrompt)}
+              className="w-full flex items-center justify-between text-xs font-bold uppercase tracking-wider text-[var(--sidebar-text-muted)] hover:text-white transition-colors"
             >
-              <AlignLeft className="w-3.5 h-3.5" /> <span className="hidden md:inline">Formatting</span>
+              <span className="flex items-center gap-2"><Sparkles className="w-3 h-3" /> AI Assistant</span>
+              <ChevronRight className={`w-3 h-3 transition-transform ${showAiPrompt ? 'rotate-90' : ''}`} />
             </button>
-          </div>
 
-          <button
-            onClick={handleDownloadDocx}
-            disabled={!inputText.trim() || isDownloading}
-            className="flex items-center gap-2 px-4 py-2 bg-[var(--success)] hover:bg-green-600 text-white rounded-md text-sm font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-          >
-            {isDownloading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Download className="w-4 h-4" />}
-            <span className="hidden sm:inline">Download</span>
-          </button>
-
-          <div className="h-6 w-px bg-gray-600 mx-1 hidden sm:block" />
-
-          <div className="hidden sm:block">
-            <ThemeToggle />
-          </div>
-          <button onClick={() => setShowTips(!showTips)} className="p-2 text-gray-400 hover:text-white transition-colors">
-            <Info className="w-5 h-5" />
-          </button>
-        </div>
-      </header>
-
-      {/* Main Workspace */}
-      <main className="flex-1 flex relative overflow-hidden">
-
-        {/* Sidebar / Tips Panel */}
-        {showTips && (
-          <div className="w-80 bg-white border-r border-[var(--border)] flex-shrink-0 overflow-y-auto z-20 shadow-xl absolute left-0 top-0 bottom-0 animate-fade-in md:relative md:shadow-none">
-            <div className="p-4 border-b border-[var(--border)] flex justify-between items-center bg-gray-50">
-              <h2 className="font-bold text-[var(--ink)] flex items-center gap-2">
-                <Menu className="w-4 h-4" /> Tools & Tips
-              </h2>
-              <button onClick={() => setShowTips(false)} className="md:hidden text-gray-500">Close</button>
-            </div>
-
-            <div className="p-4 space-y-6">
-              <div className="space-y-2">
-                <h3 className="text-xs font-bold uppercase text-[var(--ink-muted)] tracking-wider">AI Assistant</h3>
-                <p className="text-sm text-[var(--ink)] mb-2">Paste this prompt into ChatGPT/Claude to generate citations:</p>
+            {showAiPrompt && (
+              <div className="p-3 bg-[var(--sidebar-hover)] rounded-lg border border-[var(--sidebar-border)] space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                <p className="text-[11px] text-[var(--sidebar-text-muted)] leading-relaxed">
+                  Paste this into ChatGPT to generate citations correctly:
+                </p>
                 <div className="relative group">
-                  <div className="p-3 bg-gray-100 rounded text-xs font-mono text-gray-600 border border-gray-200">
-                    {AI_PROMPT}
+                  <div className="p-2 bg-slate-950 rounded border border-slate-800 text-[10px] font-mono text-slate-400 leading-relaxed break-words">
+                    {AI_PROMPT.substring(0, 80)}...
                   </div>
                   <button
                     onClick={copyPrompt}
-                    className="absolute top-2 right-2 p-1.5 bg-white border border-gray-200 rounded hover:bg-gray-50 text-gray-600"
-                    title="Copy"
+                    className="absolute top-1 right-1 p-1 bg-slate-800 hover:bg-[var(--accent)] text-slate-300 hover:text-white rounded transition-colors"
+                    title="Copy Full Prompt"
                   >
-                    {copiedPrompt ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
+                    {copiedPrompt ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                   </button>
                 </div>
               </div>
-
-              <div className="space-y-2">
-                <h3 className="text-xs font-bold uppercase text-[var(--ink-muted)] tracking-wider">Shortcuts</h3>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-sm text-[var(--ink)]"><span>Upload</span> <kbd className="bg-gray-100 px-1.5 rounded border border-gray-300 font-mono text-xs">Ctrl+U</kbd></div>
-                  <div className="flex justify-between text-sm text-[var(--ink)]"><span>Download</span> <kbd className="bg-gray-100 px-1.5 rounded border border-gray-300 font-mono text-xs">Ctrl+D</kbd></div>
-                  <div className="flex justify-between text-sm text-[var(--ink)]"><span>Toggle Citations</span> <kbd className="bg-gray-100 px-1.5 rounded border border-gray-300 font-mono text-xs">Ctrl+1</kbd></div>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
-        )}
 
-        {/* Document Canvas */}
-        <div className="flex-1 bg-[var(--app-bg)] overflow-y-auto p-8 flex justify-center relative">
+        </div>
 
-          {/* Error Toast */}
+        {/* Footer Action */}
+        <div className="p-6 border-t border-[var(--sidebar-border)] bg-[var(--sidebar-bg)]">
+          <button
+            onClick={handleDownloadDocx}
+            disabled={!inputText.trim() || isDownloading}
+            className="w-full py-3 px-4 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-lg font-semibold shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95"
+          >
+            {isDownloading ? (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            Download DOCX
+          </button>
+        </div>
+      </aside>
+
+      {/* 2. MAIN WORKSPACE (Right Panel) */}
+      <main className="flex-1 flex flex-col relative min-w-0">
+
+        {/* Workspace Header / Toolbar (Optional, for future expansion) */}
+        {/* <header className="h-16 border-b border-[var(--border)] bg-white flex items-center justify-between px-8">
+           <div className="text-sm font-medium text-[var(--ink-muted)]">Untitled Document</div>
+           <div className="flex gap-4 text-sm">
+             <a href="/privacy" className="text-[var(--ink-muted)] hover:text-[var(--ink)]">Privacy</a>
+             <a href="/terms" className="text-[var(--ink-muted)] hover:text-[var(--ink)]">Terms</a>
+           </div>
+        </header> */}
+
+        {/* Scrollable Document Canvas */}
+        <div className="flex-1 overflow-y-auto bg-[var(--app-bg)] p-8 md:p-12 flex justify-center custom-scrollbar">
+
+          {/* Error Toast (Floating) */}
           {errorMessage && (
-            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-md shadow-lg flex items-center gap-2 text-sm font-medium animate-fade-in">
-              <AlertCircle className="w-4 h-4" />
+            <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-50 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 text-sm font-medium animate-in fade-in slide-in-from-top-5">
+              <AlertCircle className="w-5 h-5 text-red-500" />
               {errorMessage}
             </div>
           )}
 
-          {/* The "Paper" - Explicit A4 Width */}
-          <div
-            className="bg-[var(--paper-bg)] doc-shadow flex flex-col relative transition-all duration-300"
-            style={{ width: '816px', minHeight: '1056px', maxWidth: '100%' }}
-          >
+          {/* THE PAPER */}
+          <div className="w-full max-w-[816px] min-h-[1056px] bg-[var(--paper-bg)] paper-shadow rounded-sm flex flex-col relative transition-all duration-300 ring-1 ring-black/5">
+
+            {/* Text Area */}
             <textarea
               ref={textareaRef}
               value={inputText}
               onChange={(e) => handleTextChange(e.target.value)}
               placeholder="Paste your legal document here..."
-              className="w-full h-full bg-transparent border-none resize-none focus:ring-0 text-[var(--ink)] placeholder-gray-300 text-lg leading-loose font-serif outline-none"
-              style={{ padding: '3rem 4rem' }}
+              className="w-full h-full bg-transparent border-none resize-none focus:ring-0 text-[var(--ink)] placeholder-slate-300 text-lg leading-loose font-serif outline-none p-16"
               spellCheck={false}
             />
 
-            {/* Footer / Status Bar inside the paper */}
-            <div className="absolute bottom-0 left-0 right-0 h-10 border-t border-[var(--border)] bg-gray-50/50 flex items-center justify-between px-6 text-xs text-[var(--ink-muted)]">
-              <span>{wordCount.toLocaleString()} words</span>
+            {/* Status Bar (Inside Paper) */}
+            <div className="absolute bottom-0 left-0 right-0 h-10 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between px-6 text-[10px] font-medium text-slate-400 uppercase tracking-wider rounded-b-sm">
+              <div className="flex items-center gap-4">
+                <span>{wordCount.toLocaleString()} words</span>
+                {wordCount > MAX_WORDS && <span className="text-red-500 font-bold">Limit Exceeded</span>}
+              </div>
               <div className="flex gap-4">
                 <span>Ln {inputText.split('\n').length}</span>
                 <span>Col {inputText.length}</span>
               </div>
             </div>
+
           </div>
         </div>
+
+        {/* Bottom Right Links (Floating) */}
+        <div className="absolute bottom-4 right-6 flex gap-4 text-xs font-medium text-slate-400">
+          <a href="/privacy" className="hover:text-slate-600 transition-colors">Privacy</a>
+          <a href="/terms" className="hover:text-slate-600 transition-colors">Terms</a>
+          <a href="/feedback" className="hover:text-slate-600 transition-colors">Feedback</a>
+        </div>
+
       </main>
     </div>
   );

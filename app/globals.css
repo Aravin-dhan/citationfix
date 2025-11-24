@@ -1,116 +1,84 @@
 @import "tailwindcss";
 
 :root {
-  /* DocHub-inspired Theme: Modern, Clean, High Contrast */
+  /* Modern SaaS Palette (Slate & Blue) */
+  --sidebar-bg: #0f172a;
+  /* Slate 900 */
+  --sidebar-border: #1e293b;
+  /* Slate 800 */
+  --sidebar-text: #f8fafc;
+  /* Slate 50 */
+  --sidebar-text-muted: #94a3b8;
+  /* Slate 400 */
+  --sidebar-hover: #1e293b;
+  /* Slate 800 */
 
-  /* App Shell Colors */
-  --app-bg: #F3F4F6;
-  /* Light gray background for the workspace */
-  --header-bg: #2B2B2B;
-  /* Dark charcoal for the main header */
-  --header-text: #FFFFFF;
+  --app-bg: #f1f5f9;
+  /* Slate 100 - Clean workspace background */
+  --paper-bg: #ffffff;
+  --paper-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
 
-  /* Document / Paper */
-  --paper-bg: #FFFFFF;
-  /* Pure white for the document */
-  --paper-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --ink: #0f172a;
+  /* Slate 900 - Main text */
+  --ink-muted: #64748b;
+  /* Slate 500 - Secondary text */
+  --border: #e2e8f0;
+  /* Slate 200 */
 
-  /* Typography & Ink */
-  --ink: #111827;
-  /* Gray-900 for primary text */
-  --ink-muted: #6B7280;
-  /* Gray-500 for secondary text */
-  --border: #E5E7EB;
-  /* Gray-200 for borders */
+  --accent: #2563eb;
+  /* Royal Blue - Primary Action */
+  --accent-hover: #1d4ed8;
+  --accent-text: #ffffff;
 
-  /* Accents (Legal/Professional) */
-  --primary: #3B82F6;
-  /* Standard Blue for primary actions (DocHub style) */
-  --primary-hover: #2563EB;
-  --accent: #D97706;
-  /* Amber/Gold for "Legal" highlights */
-
-  /* Status */
-  --success: #10B981;
-  --error: #EF4444;
+  --success: #10b981;
+  /* Emerald 500 */
+  --error: #ef4444;
+  /* Red 500 */
 
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-serif: "Times New Roman", Times, serif;
-  /* Kept for the document content itself */
 }
 
+/* Dark Mode Overrides (Optional, but good to have ready) */
 .dark {
-  /* Dark Mode - Modern Dark UI */
-  --app-bg: #1F2937;
-  /* Gray-800 */
-  --header-bg: #111827;
-  /* Gray-900 */
-  --header-text: #F9FAFB;
-
-  --paper-bg: #374151;
-  /* Gray-700 for the paper in dark mode */
-  --ink: #F9FAFB;
-  --ink-muted: #9CA3AF;
-  --border: #4B5563;
-
-  --primary: #60A5FA;
-  --primary-hover: #3B82F6;
-  --accent: #F59E0B;
-}
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+  --app-bg: #020617;
+  /* Slate 950 */
+  --paper-bg: #1e293b;
+  /* Slate 800 */
+  --ink: #f8fafc;
+  --ink-muted: #94a3b8;
+  --border: #334155;
 }
 
 body {
   font-family: var(--font-sans);
   background-color: var(--app-bg);
   color: var(--ink);
-  line-height: 1.5;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  /* App-like feel, no body scroll */
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* Utilities */
+.paper-shadow {
+  box-shadow: var(--paper-shadow);
 }
 
-::-webkit-scrollbar-track {
+/* Custom Scrollbar for the Document Area */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
 
-::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
-  border-radius: 4px;
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 3px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
-}
-
-/* DocHub-style Paper Shadow */
-.doc-shadow {
-  box-shadow:
-    0 10px 15px -3px rgba(0, 0, 0, 0.1),
-    0 4px 6px -2px rgba(0, 0, 0, 0.05),
-    0 0 0 1px rgba(0, 0, 0, 0.05);
-  /* Subtle border ring */
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-5px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
 }
