@@ -1,0 +1,2 @@
+python-docx-2023
+werkzeug==3.0.1
