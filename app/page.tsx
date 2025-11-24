@@ -55,66 +55,45 @@ export default function Home() {
     setCopiedFootnotes(false);
   };
 
-  const handleDownloadDocx = async (retryCount = 0) => {
-    try {
-      setIsDownloading(true);
-      setErrorMessage('');
+  const handleDownloadDocx = async (format: boolean = false) => {
+    setIsDownloading(true);
+    setErrorMessage('');
 
+    try {
       const response = await fetch('/api/convert', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ text: inputText }),
+        body: JSON.stringify({
+          text: inputText,
+          formatting: format
+        }),
       });
 
       if (!response.ok) {
-        // Try to get detailed error message from API
-        const errorData = await response.json().catch(() => null);
-        const errorMsg = errorData?.error || errorData?.details || 'Failed to generate .docx file';
-        throw new Error(errorMsg);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to generate .docx file');
       }
 
       const blob = await response.blob();
 
       // Validate blob
-      if (!blob || blob.size === 0) {
-        throw new Error('Generated file is empty. Please try again.');
+      if (blob.size === 0) {
+        throw new Error('Generated file is empty');
       }
 
-      // Validate blob type
-      if (blob.type !== 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-        console.warn('Unexpected blob type:', blob.type);
-      }
-
-      // Create download link
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `CitationFix-${Date.now()}.docx`;
+      a.download = format ? `CitationFix-Formatted-${Date.now()}.docx` : `CitationFix-${Date.now()}.docx`;
       document.body.appendChild(a);
       a.click();
-
-      // Cleanup
-      setTimeout(() => {
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      }, 100);
-
-      // Success - clear any previous errors
-      setErrorMessage('');
-
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Failed to download file';
-
-      // Retry logic for network errors
-      if (retryCount < 2 && (errorMsg.includes('network') || errorMsg.includes('fetch'))) {
-        console.log(`Retrying download (attempt ${retryCount + 1}/2)...`);
-        setTimeout(() => handleDownloadDocx(retryCount + 1), 1000);
-        return;
-      }
-
-      setErrorMessage(`Download failed: ${errorMsg}`);
+      console.error('Download error:', error);
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to download file');
     } finally {
       setIsDownloading(false);
     }
@@ -328,25 +307,6 @@ export default function Home() {
                       </>
                     )}
                   </button>
-                  <button
-                    onClick={() => handleDownloadDocx()}
-                    disabled={isDownloading}
-                    className="px-3 py-1.5 rounded text-xs font-medium bg-[var(--primary)] text-white hover:bg-[var(--primary-dark)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
-                  >
-                    {isDownloading ? (
-                      <>
-                        <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Download .docx
-                      </>
                     )}
                   </button>
                 </div>
@@ -358,91 +318,92 @@ export default function Home() {
               </div>
             </section>
 
-            {/* Footnotes */}
-            {footnotes.length > 0 && (
-              <section className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-[var(--foreground)]">
-                    Footnotes ({footnotes.length})
-                  </h3>
-                  <button
-                    onClick={() => copyToClipboard(formatFootnotes(footnotes), 'footnotes')}
-                    className="px-3 py-1.5 rounded text-xs font-medium bg-[var(--background)] border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--border)] transition-colors flex items-center gap-1.5"
-                  >
-                    {copiedFootnotes ? (
-                      <>
-                        <svg className="w-3.5 h-3.5 text-[var(--success)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        Copied
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                        Copy
-                      </>
-                    )}
-                  </button>
-                </div>
-                <div className="p-3 rounded bg-[var(--background)] border border-[var(--border)]">
-                  <ol className="space-y-2">
-                    {footnotes.map((fn, index) => (
-                      <li key={index} className="text-sm text-[var(--foreground)] leading-relaxed">
-                        <span className="font-semibold text-[var(--accent)] mr-2">
-                          {index + 1}.
-                        </span>
-                        {fn}
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-              </section>
-            )}
+      {/* Footnotes */}
+      {footnotes.length > 0 && (
+        <section className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-[var(--foreground)]">
+              Footnotes ({footnotes.length})
+            </h3>
+            <button
+              onClick={() => copyToClipboard(formatFootnotes(footnotes), 'footnotes')}
+              className="px-3 py-1.5 rounded text-xs font-medium bg-[var(--background)] border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--border)] transition-colors flex items-center gap-1.5"
+            >
+              {copiedFootnotes ? (
+                <>
+                  <svg className="w-3.5 h-3.5 text-[var(--success)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Copied
+                </>
+              ) : (
+                <>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  Copy
+                </>
+              )}
+            </button>
           </div>
-        )}
-
-        {/* Example */}
-        <section className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-          <h2 className="text-lg font-semibold text-[var(--foreground)] mb-3">Example</h2>
-          <div className="space-y-3">
-            <div>
-              <p className="text-xs font-medium text-[var(--text-muted)] mb-1.5">Input:</p>
-              <code className="block p-3 bg-[var(--background)] border border-[var(--border)] rounded text-xs font-mono text-[var(--foreground)]">
-                {'This is a legal argument.{{fn: Smith v. Jones, 123 F.3d 456 (2020)}} The court held...{{fn: Legal Theory, p. 45}}'}
-              </code>
-            </div>
-            <div>
-              <p className="text-xs font-medium text-[var(--text-muted)] mb-1.5">Output:</p>
-              <div className="p-3 bg-[var(--background)] border border-[var(--border)] rounded text-xs">
-                <p className="text-[var(--foreground)] mb-2">
-                  This is a legal argument.¹ The court held...²
-                </p>
-                <ol className="space-y-1 text-[var(--text-muted)]">
-                  <li><span className="font-semibold text-[var(--accent)]">1.</span> Smith v. Jones, 123 F.3d 456 (2020)</li>
-                  <li><span className="font-semibold text-[var(--accent)]">2.</span> Legal Theory, p. 45</li>
-                </ol>
-              </div>
-            </div>
+          <div className="p-3 rounded bg-[var(--background)] border border-[var(--border)]">
+            <ol className="space-y-2">
+              {footnotes.map((fn, index) => (
+                <li key={index} className="text-sm text-[var(--foreground)] leading-relaxed">
+                  <span className="font-semibold text-[var(--accent)] mr-2">
+                    {index + 1}.
+                  </span>
+                  {fn}
+                </li>
+              ))}
+            </ol>
           </div>
         </section>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-[var(--border)] bg-[var(--surface)] mt-12">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[var(--text-muted)]">
-            <p>© 2025 CitationFix. Client-side processing only.</p>
-            <a
-              href="/privacy"
-              className="hover:text-[var(--primary)] transition-colors font-medium"
-            >
-              Privacy Policy
-            </a>
-          </div>
-        </div>
-      </footer>
+      )}
     </div>
+  )
+}
+
+{/* Example */ }
+<section className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
+  <h2 className="text-lg font-semibold text-[var(--foreground)] mb-3">Example</h2>
+  <div className="space-y-3">
+    <div>
+      <p className="text-xs font-medium text-[var(--text-muted)] mb-1.5">Input:</p>
+      <code className="block p-3 bg-[var(--background)] border border-[var(--border)] rounded text-xs font-mono text-[var(--foreground)]">
+        {'This is a legal argument.{{fn: Smith v. Jones, 123 F.3d 456 (2020)}} The court held...{{fn: Legal Theory, p. 45}}'}
+      </code>
+    </div>
+    <div>
+      <p className="text-xs font-medium text-[var(--text-muted)] mb-1.5">Output:</p>
+      <div className="p-3 bg-[var(--background)] border border-[var(--border)] rounded text-xs">
+        <p className="text-[var(--foreground)] mb-2">
+          This is a legal argument.¹ The court held...²
+        </p>
+        <ol className="space-y-1 text-[var(--text-muted)]">
+          <li><span className="font-semibold text-[var(--accent)]">1.</span> Smith v. Jones, 123 F.3d 456 (2020)</li>
+          <li><span className="font-semibold text-[var(--accent)]">2.</span> Legal Theory, p. 45</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+      </main >
+
+  {/* Footer */ }
+  < footer className = "border-t border-[var(--border)] bg-[var(--surface)] mt-12" >
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[var(--text-muted)]">
+        <p>© 2025 CitationFix. Client-side processing only.</p>
+        <a
+          href="/privacy"
+          className="hover:text-[var(--primary)] transition-colors font-medium"
+        >
+          Privacy Policy
+        </a>
+      </div>
+    </div>
+      </footer >
+    </div >
   );
 }

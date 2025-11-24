@@ -2,7 +2,46 @@ from http.server import BaseHTTPRequestHandler
 import json
 import io
 from docx import Document
+from docx.shared import Pt, Inches
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING
+from docx.oxml import OxmlElement, ns
 import re
+
+def create_element(name):
+    return OxmlElement(name)
+
+def create_attribute(element, name, value):
+    element.set(ns.qn(name), value)
+
+def add_page_number(run):
+    fldChar1 = create_element('w:fldChar')
+    create_attribute(fldChar1, 'w:fldCharType', 'begin')
+
+    instrText = create_element('w:instrText')
+    create_attribute(instrText, 'xml:space', 'preserve')
+    instrText.text = "PAGE"
+
+    fldChar2 = create_element('w:fldChar')
+    create_attribute(fldChar2, 'w:fldCharType', 'end')
+
+    run._r.append(fldChar1)
+    run._r.append(instrText)
+    run._r.append(fldChar2)
+
+def add_num_pages(run):
+    fldChar1 = create_element('w:fldChar')
+    create_attribute(fldChar1, 'w:fldCharType', 'begin')
+
+    instrText = create_element('w:instrText')
+    create_attribute(instrText, 'xml:space', 'preserve')
+    instrText.text = "NUMPAGES"
+
+    fldChar2 = create_element('w:fldChar')
+    create_attribute(fldChar2, 'w:fldCharType', 'end')
+
+    run._r.append(fldChar1)
+    run._r.append(instrText)
+    run._r.append(fldChar2)
 
 class handler(BaseHTTPRequestHandler):
     def do_POST(self):
@@ -12,6 +51,7 @@ class handler(BaseHTTPRequestHandler):
             body = self.rfile.read(content_length)
             data = json.loads(body)
             text = data.get('text', '')
+            apply_formatting = data.get('formatting', False)
 
             # Validate input
             if not text:
@@ -33,6 +73,23 @@ class handler(BaseHTTPRequestHandler):
             # Process text and generate docx
             doc = Document()
             
+            # Set default style to Times New Roman 12
+            style = doc.styles['Normal']
+            font = style.font
+            font.name = 'Times New Roman'
+            font.size = Pt(12)
+            
+            # Configure Footnote Text style if formatting is requested
+            if apply_formatting:
+                try:
+                    footnote_style = doc.styles['Footnote Text']
+                    footnote_style.font.name = 'Times New Roman'
+                    footnote_style.font.size = Pt(10)
+                    footnote_style.paragraph_format.line_spacing = 1.0
+                except KeyError:
+                    # If style doesn't exist, we might need to create it or it's created on first use
+                    pass
+
             # Split text by newlines to preserve paragraphs
             paragraphs = text.split('\n')
             
@@ -42,6 +99,12 @@ class handler(BaseHTTPRequestHandler):
                     
                 p = doc.add_paragraph()
                 
+                # Apply formatting to paragraph
+                if apply_formatting:
+                    p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                    p.paragraph_format.line_spacing = 1.5
+                    p.paragraph_format.space_after = Pt(0) # Remove default spacing if needed, or keep standard
+                
                 # Regex to find {{fn: ...}} markers
                 parts = re.split(r'(\{\{fn:.*?\}\})', para_text)
                 
@@ -50,13 +113,50 @@ class handler(BaseHTTPRequestHandler):
                         # Extract citation text
                         citation = part[5:-2].strip()
                         if citation:
-                            # Add footnote using python-docx-2023 method
-                            # This appends a footnote reference to the paragraph
-                            p.add_footnote(citation)
+                            # Add footnote
+                            # python-docx-2023 adds the reference automatically
+                            # We need to ensure the reference in text is superscript (usually automatic)
+                            # And the footnote text is formatted
+                            footnote = p.add_footnote(citation)
+                            
+                            # Format the footnote text if needed
+                            if apply_formatting:
+                                # The footnote object has paragraphs. The first one contains the text.
+                                if footnote.paragraphs:
+                                    fn_para = footnote.paragraphs[0]
+                                    fn_para.style = doc.styles['Footnote Text']
+                                    # Ensure runs in footnote are also TNR 10
+                                    for run in fn_para.runs:
+                                        run.font.name = 'Times New Roman'
+                                        run.font.size = Pt(10)
                     else:
                         # Regular text
                         if part:
-                            p.add_run(part)
+                            run = p.add_run(part)
+                            if apply_formatting:
+                                run.font.name = 'Times New Roman'
+                                run.font.size = Pt(12)
+
+            # Add page numbers in footer "1 of xx"
+            if apply_formatting:
+                section = doc.sections[0]
+                footer = section.footer
+                paragraph = footer.paragraphs[0]
+                paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                
+                run = paragraph.add_run()
+                run.font.name = 'Times New Roman'
+                run.font.size = Pt(12)
+                add_page_number(run)
+                
+                run = paragraph.add_run(" of ")
+                run.font.name = 'Times New Roman'
+                run.font.size = Pt(12)
+                
+                run = paragraph.add_run()
+                run.font.name = 'Times New Roman'
+                run.font.size = Pt(12)
+                add_num_pages(run)
 
             # Save to buffer
             buffer = io.BytesIO()
@@ -67,7 +167,8 @@ class handler(BaseHTTPRequestHandler):
             # Send response
             self.send_response(200)
             self.send_header('Content-type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-            self.send_header('Content-Disposition', 'attachment; filename="CitationFix-Output.docx"')
+            filename = "CitationFix-Formatted.docx" if apply_formatting else "CitationFix-Output.docx"
+            self.send_header('Content-Disposition', f'attachment; filename="{filename}"')
             self.end_headers()
             self.wfile.write(docx_content)
 
