@@ -40,10 +40,29 @@ export default function Tutorial() {
 
                     <h2 className="text-xl font-bold text-[var(--foreground)]">Welcome to CitationFix!</h2>
 
-                    Got it, let's start!
-                </button>
+                    <div className="text-left space-y-3 text-sm text-[var(--text-muted)]">
+                        <p className="flex gap-3">
+                            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center font-bold text-xs">1</span>
+                            <span><strong>Upload or Paste:</strong> Add your text or upload a .docx/.txt file.</span>
+                        </p>
+                        <p className="flex gap-3">
+                            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center font-bold text-xs">2</span>
+                            <span><strong>Choose Options:</strong> Toggle "Convert Citations" and/or "Apply Formatting" based on your needs.</span>
+                        </p>
+                        <p className="flex gap-3">
+                            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center font-bold text-xs">3</span>
+                            <span><strong>Download:</strong> Click "Download Document" to get your custom .docx file.</span>
+                        </p>
+                    </div>
+
+                    <button
+                        onClick={handleClose}
+                        className="w-full bg-[var(--primary)] hover:bg-[var(--primary-dark)] text-white font-semibold py-2.5 rounded-lg transition-colors mt-4"
+                    >
+                        Got it, let's start!
+                    </button>
+                </div>
             </div>
         </div>
-        </div >
     );
 }
