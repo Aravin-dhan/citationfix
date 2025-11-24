@@ -22,6 +22,10 @@ export default function Home() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // New state for granular control
+  const [useCitations, setUseCitations] = useState(true);
+  const [useFormatting, setUseFormatting] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleTextChange = (text: string) => {
@@ -61,7 +65,12 @@ export default function Home() {
     setCopiedFootnotes(false);
   };
 
-  const handleDownloadDocx = async (format: boolean = false) => {
+  const handleDownloadDocx = async () => {
+    if (!useCitations && !useFormatting) {
+      setErrorMessage('Please select at least one option (Citations or Formatting)');
+      return;
+    }
+
     setIsDownloading(true);
     setErrorMessage('');
 
@@ -73,7 +82,8 @@ export default function Home() {
         },
         body: JSON.stringify({
           text: inputText,
-          formatting: format
+          formatting: useFormatting,
+          convert_citations: useCitations
         }),
       });
 
@@ -89,10 +99,16 @@ export default function Home() {
         throw new Error('Generated file is empty');
       }
 
+      // Determine filename
+      let filename = 'CitationFix';
+      if (useCitations) filename += '-Converted';
+      if (useFormatting) filename += '-Formatted';
+      filename += '.docx';
+
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = format ? `CitationFix-Formatted-${Date.now()}.docx` : `CitationFix-${Date.now()}.docx`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -226,49 +242,91 @@ export default function Home() {
             className="w-full h-64 px-4 py-3 rounded-lg border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] placeholder-[var(--text-muted)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/20 outline-none resize-y font-mono text-sm leading-relaxed transition-all"
           />
 
-          {/* Action Buttons - Now at the top/middle for easy access */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-            <button
-              onClick={handleConvert}
-              disabled={!canConvert}
-              className="px-6 py-3 rounded-lg font-semibold text-sm text-white bg-[var(--accent)] hover:bg-[var(--accent-light)] disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center justify-center gap-2"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clipRule="evenodd" />
-              </svg>
-              Preview Citations
-            </button>
+          {/* Control Panel */}
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6 space-y-6 shadow-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {/* Option 1: Convert Citations */}
+              <div
+                onClick={() => setUseCitations(!useCitations)}
+                className={`cursor-pointer rounded-lg p-4 border-2 transition-all duration-200 flex items-start gap-4 ${useCitations
+                  ? 'border-[var(--primary)] bg-[var(--primary)]/5'
+                  : 'border-[var(--border)] hover:border-[var(--text-muted)]'
+                  }`}
+              >
+                <div className={`mt-1 w-5 h-5 rounded border flex items-center justify-center transition-colors ${useCitations
+                  ? 'bg-[var(--primary)] border-[var(--primary)]'
+                  : 'border-[var(--text-muted)]'
+                  }`}>
+                  {useCitations && (
+                    <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+                <div>
+                  <h3 className="font-semibold text-[var(--foreground)]">Convert Citations</h3>
+                  <p className="text-xs text-[var(--text-muted)] mt-1">
+                    Turn <code>{'{{fn: ...}}'}</code> markers into real clickable footnotes.
+                  </p>
+                </div>
+              </div>
 
+              {/* Option 2: Apply Formatting */}
+              <div
+                onClick={() => setUseFormatting(!useFormatting)}
+                className={`cursor-pointer rounded-lg p-4 border-2 transition-all duration-200 flex items-start gap-4 ${useFormatting
+                  ? 'border-[var(--accent)] bg-[var(--accent)]/5'
+                  : 'border-[var(--border)] hover:border-[var(--text-muted)]'
+                  }`}
+              >
+                <div className={`mt-1 w-5 h-5 rounded border flex items-center justify-center transition-colors ${useFormatting
+                  ? 'bg-[var(--accent)] border-[var(--accent)]'
+                  : 'border-[var(--text-muted)]'
+                  }`}>
+                  {useFormatting && (
+                    <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+                <div>
+                  <h3 className="font-semibold text-[var(--foreground)]">Apply Legal Formatting</h3>
+                  <p className="text-xs text-[var(--text-muted)] mt-1">
+                    Times New Roman 12, Justified, 1.5 spacing, "1 of xx" page numbers.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Download Button */}
             <button
-              onClick={() => handleDownloadDocx(false)}
-              disabled={!inputText.trim() || isDownloading}
-              className="px-6 py-3 rounded-lg font-semibold text-sm bg-[var(--surface)] border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--background)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center justify-center gap-2"
+              onClick={handleDownloadDocx}
+              disabled={!inputText.trim() || isDownloading || (!useCitations && !useFormatting)}
+              className="w-full py-4 rounded-lg font-bold text-white text-lg shadow-lg transition-all transform active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-3"
+              style={{
+                background: useFormatting
+                  ? 'linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)'
+                  : 'var(--primary)'
+              }}
             >
               {isDownloading ? (
-                <span className="animate-pulse">Generating...</span>
-              ) : (
                 <>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                  <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
-                  Download .docx
+                  Processing...
                 </>
-              )}
-            </button>
-
-            <button
-              onClick={() => handleDownloadDocx(true)}
-              disabled={!inputText.trim() || isDownloading}
-              className="px-6 py-3 rounded-lg font-semibold text-sm text-white bg-[var(--primary)] hover:bg-[var(--primary-dark)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center justify-center gap-2 border border-white/10"
-            >
-              {isDownloading ? (
-                <span className="animate-pulse">Formatting...</span>
               ) : (
                 <>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
-                  Format & Download
+                  Download Document
+                  <span className="text-xs font-normal opacity-80 ml-1 bg-white/20 px-2 py-0.5 rounded">
+                    {useCitations && useFormatting ? 'Citations + Formatting' :
+                      useCitations ? 'Citations Only' :
+                        useFormatting ? 'Formatting Only' : 'Select an option'}
+                  </span>
                 </>
               )}
             </button>

@@ -52,6 +52,7 @@ class handler(BaseHTTPRequestHandler):
             data = json.loads(body)
             text = data.get('text', '')
             apply_formatting = data.get('formatting', False)
+            convert_citations = data.get('convert_citations', True)
 
             # Validate input
             if not text:
@@ -73,11 +74,12 @@ class handler(BaseHTTPRequestHandler):
             # Process text and generate docx
             doc = Document()
             
-            # Set default style to Times New Roman 12
+            # Set default style to Times New Roman 12 if formatting enabled
             style = doc.styles['Normal']
-            font = style.font
-            font.name = 'Times New Roman'
-            font.size = Pt(12)
+            if apply_formatting:
+                font = style.font
+                font.name = 'Times New Roman'
+                font.size = Pt(12)
             
             # Configure Footnote Text style if formatting is requested
             if apply_formatting:
@@ -87,7 +89,6 @@ class handler(BaseHTTPRequestHandler):
                     footnote_style.font.size = Pt(10)
                     footnote_style.paragraph_format.line_spacing = 1.0
                 except KeyError:
-                    # If style doesn't exist, we might need to create it or it's created on first use
                     pass
 
             # Split text by newlines to preserve paragraphs
@@ -103,41 +104,43 @@ class handler(BaseHTTPRequestHandler):
                 if apply_formatting:
                     p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
                     p.paragraph_format.line_spacing = 1.5
-                    p.paragraph_format.space_after = Pt(0) # Remove default spacing if needed, or keep standard
+                    p.paragraph_format.space_after = Pt(0)
                 
-                # Regex to find {{fn: ...}} markers
-                parts = re.split(r'(\{\{fn:.*?\}\})', para_text)
-                
-                for part in parts:
-                    if part.startswith('{{fn:') and part.endswith('}}'):
-                        # Extract citation text
-                        citation = part[5:-2].strip()
-                        if citation:
-                            # Add footnote
-                            # python-docx-2023 adds the reference automatically
-                            # We need to ensure the reference in text is superscript (usually automatic)
-                            # And the footnote text is formatted
-                            footnote = p.add_footnote(citation)
-                            
-                            # Format the footnote text if needed
-                            if apply_formatting:
-                                # The footnote object has paragraphs. The first one contains the text.
-                                if footnote.paragraphs:
-                                    fn_para = footnote.paragraphs[0]
-                                    fn_para.style = doc.styles['Footnote Text']
-                                    # Ensure runs in footnote are also TNR 10
-                                    for run in fn_para.runs:
-                                        run.font.name = 'Times New Roman'
-                                        run.font.size = Pt(10)
-                    else:
-                        # Regular text
-                        if part:
-                            run = p.add_run(part)
-                            if apply_formatting:
-                                run.font.name = 'Times New Roman'
-                                run.font.size = Pt(12)
+                if convert_citations:
+                    # Regex to find {{fn: ...}} markers
+                    parts = re.split(r'(\{\{fn:.*?\}\})', para_text)
+                    
+                    for part in parts:
+                        if part.startswith('{{fn:') and part.endswith('}}'):
+                            # Extract citation text
+                            citation = part[5:-2].strip()
+                            if citation:
+                                # Add footnote
+                                footnote = p.add_footnote(citation)
+                                
+                                # Format the footnote text if needed
+                                if apply_formatting:
+                                    if footnote.paragraphs:
+                                        fn_para = footnote.paragraphs[0]
+                                        fn_para.style = doc.styles['Footnote Text']
+                                        for run in fn_para.runs:
+                                            run.font.name = 'Times New Roman'
+                                            run.font.size = Pt(10)
+                        else:
+                            # Regular text
+                            if part:
+                                run = p.add_run(part)
+                                if apply_formatting:
+                                    run.font.name = 'Times New Roman'
+                                    run.font.size = Pt(12)
+                else:
+                    # No citation conversion, just add text as is
+                    run = p.add_run(para_text)
+                    if apply_formatting:
+                        run.font.name = 'Times New Roman'
+                        run.font.size = Pt(12)
 
-            # Add page numbers in footer "1 of xx"
+            # Add page numbers in footer "1 of xx" only if formatting is requested
             if apply_formatting:
                 section = doc.sections[0]
                 footer = section.footer
@@ -167,7 +170,16 @@ class handler(BaseHTTPRequestHandler):
             # Send response
             self.send_response(200)
             self.send_header('Content-type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-            filename = "CitationFix-Formatted.docx" if apply_formatting else "CitationFix-Output.docx"
+            
+            # Determine filename based on flags
+            filename_parts = ["CitationFix"]
+            if convert_citations:
+                filename_parts.append("Converted")
+            if apply_formatting:
+                filename_parts.append("Formatted")
+            
+            filename = "-".join(filename_parts) + ".docx"
+            
             self.send_header('Content-Disposition', f'attachment; filename="{filename}"')
             self.end_headers()
             self.wfile.write(docx_content)
