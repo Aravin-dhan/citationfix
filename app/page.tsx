@@ -1,10 +1,22 @@
 'use client';
 
 import { useState, useRef, ChangeEvent, useEffect } from 'react';
-import { processText, formatFootnotes } from '@/utils/converter';
+import { processText } from '@/utils/converter'; // Removed formatFootnotes
 import { parseFile, validateWordLimit } from '@/utils/fileParser';
 import ThemeToggle from './components/ThemeToggle';
 import Tutorial from './components/Tutorial';
+import {
+  Upload,
+  Download,
+  FileText,
+  Quote,
+  AlignLeft,
+  Copy,
+  Check,
+  Info,
+  Keyboard,
+  AlertCircle
+} from 'lucide-react';
 
 const MAX_WORDS = 20000;
 
@@ -12,20 +24,21 @@ const AI_PROMPT = `When providing citations in your response, format them using 
 
 export default function Home() {
   const [inputText, setInputText] = useState('');
-  const [mainText, setMainText] = useState('');
-  const [footnotes, setFootnotes] = useState<string[]>([]);
+  // const [mainText, setMainText] = useState(''); // Removed
+  // const [footnotes, setFootnotes] = useState<string[]>([]); // Removed
   const [wordCount, setWordCount] = useState(0);
   const [isOverLimit, setIsOverLimit] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  const [copiedMain, setCopiedMain] = useState(false);
-  const [copiedFootnotes, setCopiedFootnotes] = useState(false);
+  // const [copiedMain, setCopiedMain] = useState(false); // Removed
+  // const [copiedFootnotes, setCopiedFootnotes] = useState(false); // Removed
   const [copiedPrompt, setCopiedPrompt] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const [useCitations, setUseCitations] = useState(true);
   const [useFormatting, setUseFormatting] = useState(false);
+  const [showTips, setShowTips] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -36,9 +49,7 @@ export default function Home() {
       // Ctrl/Cmd + D = Download
       if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
         e.preventDefault();
-        if (inputText.trim() && (useCitations || useFormatting)) {
-          handleDownloadDocx();
-        }
+        if (inputText.trim() && (useCitations || useFormatting)) handleDownloadDocx();
       }
       // Ctrl/Cmd + U = Upload
       if ((e.ctrlKey || e.metaKey) && e.key === 'u') {
@@ -84,22 +95,20 @@ export default function Home() {
       setIsProcessing(false);
     }
 
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleConvert = () => {
-    const result = processText(inputText);
-    setMainText(result.mainText);
-    setFootnotes(result.footnotes);
-    setCopiedMain(false);
-    setCopiedFootnotes(false);
-  };
+  // const handleConvert = () => { // Removed
+  //   const result = processText(inputText);
+  //   setMainText(result.mainText);
+  //   setFootnotes(result.footnotes);
+  //   setCopiedMain(false);
+  //   setCopiedFootnotes(false);
+  // };
 
   const handleDownloadDocx = async () => {
     if (!useCitations && !useFormatting) {
-      setErrorMessage('Please select at least one option');
+      setErrorMessage('Please select at least one option (Citations or Formatting)');
       return;
     }
 
@@ -148,270 +157,208 @@ export default function Home() {
     }
   };
 
-  const copyToClipboard = async (text: string, type: 'main' | 'footnotes' | 'prompt') => {
+  const copyPrompt = async () => {
     try {
-      await navigator.clipboard.writeText(text);
-      if (type === 'main') {
-        setCopiedMain(true);
-        setTimeout(() => setCopiedMain(false), 2000);
-      } else if (type === 'footnotes') {
-        setCopiedFootnotes(true);
-        setTimeout(() => setCopiedFootnotes(false), 2000);
-      } else {
-        setCopiedPrompt(true);
-        setTimeout(() => setCopiedPrompt(false), 2000);
-      }
+      await navigator.clipboard.writeText(AI_PROMPT);
+      setCopiedPrompt(true);
+      setTimeout(() => setCopiedPrompt(false), 2000);
     } catch (err) {
       console.error('Failed to copy:', err);
     }
   };
 
-  const hasResults = mainText || footnotes.length > 0;
-  const canConvert = inputText.trim() && !isOverLimit;
+  // const hasResults = mainText || footnotes.length > 0; // Removed
+  // const canConvert = inputText.trim() && !isOverLimit; // Removed
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
+    <div className="min-h-screen bg-[var(--desk-bg)] py-8 px-4 sm:px-6 flex flex-col items-center font-sans transition-colors duration-300">
       <Tutorial />
 
-      {/* Header */}
-      <header className="border-b border-[var(--border)] bg-[var(--surface)]">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-[var(--foreground)]">
-            CitationFix
-          </h1>
+      {/* The "Paper" Container */}
+      <div className="w-full max-w-5xl bg-[var(--paper-bg)] rounded-sm paper-shadow min-h-[85vh] flex flex-col relative overflow-hidden transition-colors duration-300">
 
-          <div className="flex items-center gap-6">
-            <nav className="hidden md:flex items-center gap-5 text-sm">
-              <a href="/feedback" className="text-[var(--text-muted)] hover:text-[var(--foreground)] transition-colors">
-                Feedback
-              </a>
-              <a href="/privacy" className="text-[var(--text-muted)] hover:text-[var(--foreground)] transition-colors">
-                Privacy
-              </a>
-              <a href="/terms" className="text-[var(--text-muted)] hover:text-[var(--foreground)] transition-colors">
-                Terms
-              </a>
-            </nav>
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-5xl mx-auto px-6 py-8">
-        {/* AI Prompt Section */}
-        <section className="mb-6 bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">
-              <h3 className="text-base font-semibold text-[var(--foreground)] mb-2 flex items-center gap-2">
-                <svg className="w-5 h-5 text-[var(--primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                </svg>
-                AI Prompt for Citation Formatting
-              </h3>
-              <p className="text-sm text-[var(--text-muted)] mb-3">
-                Copy this prompt and add it to your AI assistant (ChatGPT, Claude, Gemini) for proper citation formatting:
-              </p>
-              <div className="bg-[var(--background)] border border-[var(--border)] rounded p-3 font-mono text-sm text-[var(--foreground)] leading-relaxed">
-                {AI_PROMPT}
-              </div>
-            </div>
-            <button
-              onClick={() => copyToClipboard(AI_PROMPT, 'prompt')}
-              className="flex-shrink-0 px-4 py-2 rounded text-sm font-medium bg-[var(--primary)] text-white hover:bg-[var(--primary-dark)] transition-colors flex items-center gap-2"
-            >
-              {copiedPrompt ? (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Copied!
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                  Copy Prompt
-                </>
-              )}
-            </button>
-          </div>
-        </section>
-
-        {/* Tips Section */}
-        <section className="mb-6 bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-          <h3 className="text-base font-semibold text-[var(--foreground)] mb-3">💡 Tips for Legal Document Generation</h3>
-          <div className="space-y-3 text-sm text-[var(--text-muted)]">
-            <p>
-              <strong className="text-[var(--foreground)]">Speed up your workflow:</strong> Use <kbd className="px-1.5 py-0.5 bg-[var(--background)] border border-[var(--border)] rounded text-xs">Ctrl+1</kbd> to toggle citations, <kbd className="px-1.5 py-0.5 bg-[var(--background)] border border-[var(--border)] rounded text-xs">Ctrl+2</kbd> for formatting, <kbd className="px-1.5 py-0.5 bg-[var(--background)] border border-[var(--border)] rounded text-xs">Ctrl+D</kbd> to download, <kbd className="px-1.5 py-0.5 bg-[var(--background)] border border-[var(--border)] rounded text-xs">Ctrl+U</kbd> to upload.
-            </p>
-            <p>
-              <strong className="text-[var(--foreground)]">Use Google AI Studio:</strong> Upload your entire document to <a href="https://aistudio.google.com" target="_blank" rel="noopener noreferrer" className="text-[var(--primary)] hover:underline">Google AI Studio</a> along with the prompt above. AI will automatically convert any citations it generates into the <code>{'{{fn: ...}}'}</code> format that CitationFix can process.
-            </p>
-            <p>
-              <strong className="text-[var(--foreground)]">For existing documents:</strong> Paste your document with the AI prompt into any AI assistant (ChatGPT, Claude, Gemini) and ask it to reformat all citations using the <code>{'{{fn: ...}}'}</code> marker format.
-            </p>
-          </div>
-        </section>
-
-        {/* Main Input Area */}
-        <section className="space-y-4">
-          {/* Controls */}
-          <div className="flex flex-wrap items-center gap-3">
-            <div
-              onClick={() => setUseCitations(!useCitations)}
-              className={`flex items-center gap-2 px-3 py-2 rounded cursor-pointer transition-all border text-sm ${useCitations
-                  ? 'bg-[var(--primary)]/10 border-[var(--primary)] text-[var(--primary)]'
-                  : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text-muted)]'
-                }`}
-            >
-              <div className={`w-4 h-4 rounded border flex items-center justify-center ${useCitations ? 'bg-[var(--primary)] border-[var(--primary)]' : 'border-current'
-                }`}>
-                {useCitations && (
-                  <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </div>
-              <span className="font-medium">Convert Citations</span>
-            </div>
-
-            <div
-              onClick={() => setUseFormatting(!useFormatting)}
-              className={`flex items-center gap-2 px-3 py-2 rounded cursor-pointer transition-all border text-sm ${useFormatting
-                  ? 'bg-[var(--accent)]/10 border-[var(--accent)] text-[var(--accent)]'
-                  : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text-muted)]'
-                }`}
-            >
-              <div className={`w-4 h-4 rounded border flex items-center justify-center ${useFormatting ? 'bg-[var(--accent)] border-[var(--accent)]' : 'border-current'
-                }`}>
-                {useFormatting && (
-                  <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </div>
-              <span className="font-medium">Apply Formatting</span>
-            </div>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              id="file-upload"
-              className="hidden"
-              accept=".txt,.docx"
-              onChange={handleFileUpload}
-              disabled={isProcessing}
-            />
-            <label
-              htmlFor="file-upload"
-              className={`flex items-center gap-2 px-3 py-2 rounded text-sm font-medium border transition-colors cursor-pointer ${isProcessing
-                  ? 'bg-[var(--surface)] text-[var(--text-muted)] border-[var(--border)] opacity-50 cursor-not-allowed'
-                  : 'bg-[var(--surface)] text-[var(--foreground)] border-[var(--border)] hover:bg-[var(--background)]'
-                }`}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-              </svg>
-              Upload File
-            </label>
-
-            <div className="ml-auto">
-              <span className={`text-xs px-2 py-1 rounded ${wordCount > 20000
-                  ? 'bg-[var(--error)]/10 text-[var(--error)]'
-                  : 'bg-[var(--surface)] text-[var(--text-muted)]'
-                }`}>
-                {wordCount.toLocaleString()} / 20,000 words
+        {/* Header / Toolbar */}
+        <header className="border-b border-[var(--line)] px-8 py-6 flex flex-col gap-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-serif font-bold text-[var(--ink)] tracking-tight">
+                CitationFix
+              </h1>
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[var(--accent-light)] text-[var(--accent)] border border-[var(--accent)]/20">
+                Legal Tools
               </span>
             </div>
+
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setShowTips(!showTips)}
+                className="p-2 text-[var(--ink-muted)] hover:text-[var(--accent)] transition-colors rounded-full hover:bg-[var(--accent-light)]"
+                title="Tips & Shortcuts"
+              >
+                <Info className="w-5 h-5" />
+              </button>
+              <ThemeToggle />
+            </div>
           </div>
 
+          {/* Controls Toolbar */}
+          <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
+            <div className="flex items-center gap-2 bg-[var(--desk-bg)]/30 p-1 rounded-lg border border-[var(--line)]">
+              {/* Toggle: Citations */}
+              <button
+                onClick={() => setUseCitations(!useCitations)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${useCitations
+                    ? 'bg-[var(--paper-bg)] text-[var(--ink)] shadow-sm border border-[var(--line)]'
+                    : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                  }`}
+                title="Convert {{fn: ...}} to footnotes (Ctrl+1)"
+              >
+                <Quote className={`w-4 h-4 ${useCitations ? 'text-[var(--accent)]' : ''}`} />
+                Citations
+              </button>
+
+              {/* Toggle: Formatting */}
+              <button
+                onClick={() => setUseFormatting(!useFormatting)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${useFormatting
+                    ? 'bg-[var(--paper-bg)] text-[var(--ink)] shadow-sm border border-[var(--line)]'
+                    : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                  }`}
+                title="Apply Legal Formatting (Ctrl+2)"
+              >
+                <AlignLeft className={`w-4 h-4 ${useFormatting ? 'text-[var(--accent)]' : ''}`} />
+                Formatting
+              </button>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                accept=".txt,.docx"
+                onChange={handleFileUpload}
+                disabled={isProcessing}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isProcessing}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[var(--ink)] hover:text-[var(--accent)] transition-colors disabled:opacity-50"
+                title="Upload .txt or .docx (Ctrl+U)"
+              >
+                {isProcessing ? (
+                  <div className="w-4 h-4 border-2 border-[var(--ink)] border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Upload className="w-4 h-4" />
+                )}
+                Upload
+              </button>
+
+              <div className="h-6 w-px bg-[var(--line)] mx-1" />
+
+              <button
+                onClick={handleDownloadDocx}
+                disabled={!inputText.trim() || isDownloading || (!useCitations && !useFormatting)}
+                className="flex items-center gap-2 px-5 py-2.5 bg-[var(--ink)] text-[var(--paper-bg)] rounded-md text-sm font-medium shadow-sm hover:bg-[var(--accent)] hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+                title="Download Document (Ctrl+D)"
+              >
+                {isDownloading ? (
+                  <div className="w-4 h-4 border-2 border-[var(--paper-bg)] border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                Download
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col relative">
+
+          {/* Tips / AI Prompt Panel (Collapsible) */}
+          {showTips && (
+            <div className="bg-[var(--accent-light)]/30 border-b border-[var(--line)] p-6 animate-fade-in">
+              <div className="grid md:grid-cols-2 gap-8">
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold text-[var(--ink)] flex items-center gap-2">
+                    <Keyboard className="w-4 h-4" /> Shortcuts
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-[var(--ink-muted)]">
+                    <div className="flex justify-between p-2 bg-[var(--paper-bg)] rounded border border-[var(--line)]">
+                      <span>Toggle Citations</span> <kbd className="font-mono bg-[var(--desk-bg)] px-1 rounded">Ctrl+1</kbd>
+                    </div>
+                    <div className="flex justify-between p-2 bg-[var(--paper-bg)] rounded border border-[var(--line)]">
+                      <span>Toggle Formatting</span> <kbd className="font-mono bg-[var(--desk-bg)] px-1 rounded">Ctrl+2</kbd>
+                    </div>
+                    <div className="flex justify-between p-2 bg-[var(--paper-bg)] rounded border border-[var(--line)]">
+                      <span>Upload File</span> <kbd className="font-mono bg-[var(--desk-bg)] px-1 rounded">Ctrl+U</kbd>
+                    </div>
+                    <div className="flex justify-between p-2 bg-[var(--paper-bg)] rounded border border-[var(--line)]">
+                      <span>Download</span> <kbd className="font-mono bg-[var(--desk-bg)] px-1 rounded">Ctrl+D</kbd>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold text-[var(--ink)] flex items-center gap-2">
+                    <FileText className="w-4 h-4" /> AI Prompt
+                  </h3>
+                  <div className="relative">
+                    <div className="p-3 bg-[var(--paper-bg)] border border-[var(--line)] rounded text-xs font-mono text-[var(--ink-muted)] leading-relaxed pr-10">
+                      {AI_PROMPT}
+                    </div>
+                    <button
+                      onClick={copyPrompt}
+                      className="absolute top-2 right-2 p-1.5 hover:bg-[var(--desk-bg)] rounded transition-colors text-[var(--ink-muted)] hover:text-[var(--ink)]"
+                      title="Copy Prompt"
+                    >
+                      {copiedPrompt ? <Check className="w-4 h-4 text-[var(--success)]" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Error Message */}
           {errorMessage && (
-            <div className="p-3 rounded bg-[var(--error)]/10 border border-[var(--error)] text-sm text-[var(--error)]">
+            <div className="mx-8 mt-6 p-3 bg-[var(--error)]/10 border border-[var(--error)]/20 rounded text-sm text-[var(--error)] flex items-center gap-2">
+              <AlertCircle className="w-4 h-4" />
               {errorMessage}
             </div>
           )}
 
-          <textarea
-            ref={textareaRef}
-            value={inputText}
-            onChange={(e) => handleTextChange(e.target.value)}
-            placeholder='Paste your document here or upload a file. Use {{fn: Citation}} for footnotes.'
-            className="w-full h-96 px-4 py-3 rounded-lg border-2 border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] placeholder-[var(--text-muted)] focus:border-[var(--primary)] focus:outline-none resize-y font-mono text-base leading-relaxed"
-          />
+          {/* Text Area - The "Paper" Surface */}
+          <div className="flex-1 relative">
+            <textarea
+              ref={textareaRef}
+              value={inputText}
+              onChange={(e) => handleTextChange(e.target.value)}
+              placeholder="Start typing or paste your document here..."
+              className="w-full h-full p-8 bg-transparent border-none resize-none focus:ring-0 text-[var(--ink)] placeholder-[var(--line)] text-lg leading-relaxed font-serif outline-none"
+              spellCheck={false}
+            />
 
-          <button
-            onClick={handleDownloadDocx}
-            disabled={!inputText.trim() || isDownloading || (!useCitations && !useFormatting)}
-            className="w-full py-3 rounded-lg font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-base"
-            style={{
-              backgroundColor: isDownloading || !inputText.trim() ? 'var(--text-muted)' : 'var(--primary)'
-            }}
-          >
-            {isDownloading ? (
-              <>
-                <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Processing...
-              </>
-            ) : (
-              <>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Download Document
-              </>
-            )}
-          </button>
-
-          <p className="text-xs text-center text-[var(--text-muted)]">
-            {useCitations && useFormatting && 'With citations converted and legal formatting applied'}
-            {useCitations && !useFormatting && 'Citations will be converted to footnotes'}
-            {!useCitations && useFormatting && 'Legal formatting will be applied (TNR 12, Justified, 1.5)'}
-            {!useCitations && !useFormatting && 'Select at least one option above'}
-          </p>
-        </section>
-
-        {/* Example */}
-        <section className="mt-8 bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5">
-          <h3 className="text-base font-semibold text-[var(--foreground)] mb-3">Example Format</h3>
-          <div className="space-y-3">
-            <div>
-              <p className="text-xs font-medium text-[var(--text-muted)] mb-2">Input:</p>
-              <code className="block p-3 bg-[var(--background)] border border-[var(--border)] rounded text-sm font-mono text-[var(--foreground)]">
-                {'This legal principle is established.{{fn: Smith v. Jones, 123 F.3d 456 (2020)}}'}
-              </code>
-            </div>
-            <div>
-              <p className="text-xs font-medium text-[var(--text-muted)] mb-2">Output (.docx):</p>
-              <div className="p-3 bg-[var(--background)] border border-[var(--border)] rounded text-sm">
-                <p className="text-[var(--foreground)]">
-                  This legal principle is established.<sup className="text-[var(--primary)]">1</sup>
-                </p>
-                <hr className="my-2 border-[var(--border)]" />
-                <p className="text-xs text-[var(--text-muted)]">
-                  <sup className="text-[var(--primary)]">1</sup> Smith v. Jones, 123 F.3d 456 (2020)
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-[var(--border)] bg-[var(--surface)] mt-16">
-        <div className="max-w-5xl mx-auto px-6 py-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[var(--text-muted)]">
-            <p>© 2025 CitationFix. No data stored. Processing is ephemeral.</p>
-            <div className="flex gap-4">
-              <a href="/feedback" className="hover:text-[var(--primary)] transition-colors">Feedback</a>
-              <a href="/privacy" className="hover:text-[var(--primary)] transition-colors">Privacy</a>
-              <a href="/terms" className="hover:text-[var(--primary)] transition-colors">Terms</a>
+            {/* Word Count (Floating) */}
+            <div className="absolute bottom-4 right-8 text-xs font-medium text-[var(--ink-muted)] bg-[var(--paper-bg)]/80 backdrop-blur-sm px-2 py-1 rounded border border-[var(--line)]">
+              {wordCount.toLocaleString()} / {MAX_WORDS.toLocaleString()} words
             </div>
           </div>
         </div>
-      </footer>
+
+        {/* Footer */}
+        <footer className="border-t border-[var(--line)] px-8 py-4 bg-[var(--paper-bg)]">
+          <div className="flex items-center justify-between text-xs text-[var(--ink-muted)]">
+            <p>© 2025 CitationFix. Ephemeral Processing.</p>
+            <div className="flex gap-6">
+              <a href="/feedback" className="hover:text-[var(--accent)] transition-colors">Feedback</a>
+              <a href="/privacy" className="hover:text-[var(--accent)] transition-colors">Privacy</a>
+              <a href="/terms" className="hover:text-[var(--accent)] transition-colors">Terms</a>
+            </div>
+          </div>
+        </footer>
+      </div>
     </div>
   );
 }
