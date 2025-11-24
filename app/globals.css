@@ -1,102 +1,141 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Crimson+Text:wght@400;600&display=swap');
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  --background: #fafafa;
-  --foreground: #1a1a1a;
+  /* Legal Light Theme - Beige, Black, Red */
+  --background: #F5F5DC;
+  /* Beige */
+  --foreground: #1A1A1A;
+  /* Almost Black */
+  --surface: #FAFAF0;
+  /* Light Beige */
+  --border: #D4D4C8;
+  /* Darker Beige */
 
-  /* Professional legal color palette - navy and burgundy */
-  --primary: #1e3a5f;
-  --primary-dark: #152a45;
-  --primary-light: #2d5a8f;
-  --accent: #8b2635;
-  --accent-light: #a13545;
+  --primary: #8B0000;
+  /* Dark Red */
+  --primary-dark: #660000;
+  --accent: #A0522D;
+  /* Sienna Brown */
+  --accent-light: #BC8F8F;
 
-  --surface: #ffffff;
-  --border: #e0e0e0;
-  --text-muted: #666666;
-  --success: #2d6a4f;
-  --error: #c53030;
+  --text-muted: #4A4A4A;
+  --success: #2D5016;
+  --error: #8B0000;
+
+  --font-geist-sans: "Geist", sans-serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-serif: 'Crimson Text', Georgia, serif;
+.dark {
+  /* Legal Dark Theme - Dark Beige/Brown tones */
+  --background: #1C1610;
+  /* Very Dark Brown */
+  --foreground: #E8E6E3;
+  /* Off-white */
+  --surface: #2C2416;
+  /* Dark Beige-Brown */
+  --border: #3D342A;
+  /* Medium Brown */
+
+  --primary: #C85A54;
+  /* Muted Red */
+  --primary-dark: #A0423D;
+  --accent: #D4A574;
+  /* Light Brown/Tan */
+  --accent-light: #E6C9A8;
+
+  --text-muted: #B8B6B0;
+  --success: #7FAF6B;
+  --error: #E07A5F;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #f5f5f5;
-
-    /* Improved dark mode colors with better contrast */
-    --primary: #4a7bb8;
-    --primary-dark: #2d5a8f;
-    --primary-light: #6b9bd8;
-    --accent: #d66b7a;
-    --accent-light: #e88896;
-
-    --surface: #1a1a1a;
-    --border: #404040;
-    --text-muted: #b0b0b0;
-    --success: #52c77a;
-    --error: #f56565;
-  }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
 }
 
-/* Smooth transitions */
-* {
-  transition-property: color, background-color, border-color, transform, box-shadow;
-  transition-duration: 150ms;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+code {
+  background-color: var(--surface);
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.25rem;
+  font-size: 0.9em;
+  border: 1px solid var(--border);
+  font-family: "Courier New", monospace;
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--background);
+  background: var(--surface);
 }
 
 ::-webkit-scrollbar-thumb {
   background: var(--border);
-  border-radius: 5px;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
 }
 
-/* Professional serif headings */
-.serif-heading {
-  font-family: 'Crimson Text', Georgia, serif;
+/* Animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
-/* File upload dropzone */
-.dropzone {
-  border: 2px dashed var(--border);
-  transition: all 0.2s ease;
+@keyframes slide-up {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
-.dropzone:hover {
-  border-color: var(--primary);
-  background: var(--background);
+.animate-in {
+  animation: fade-in 0.3s ease-out;
 }
 
-.dropzone.dragover {
-  border-color: var(--primary);
-  background: var(--primary);
-  opacity: 0.1;
+.fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+.slide-in-from-bottom-4 {
+  animation: slide-up 0.4s ease-out;
+}
+
+/* Smooth transitions */
+* {
+  transition-property: color, background-color, border-color;
+  transition-duration: 200ms;
+  transition-timing-function: ease-in-out;
+}
+
+button,
+a,
+input,
+textarea {
+  transition-property: all;
 }

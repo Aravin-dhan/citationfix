@@ -76,7 +76,7 @@ export function countWords(text: string): number {
 /**
  * Validate text length
  */
-export function validateWordLimit(text: string, maxWords: number = 10000): {
+export function validateWordLimit(text: string, maxWords: number = 20000): {
     isValid: boolean;
     wordCount: number;
     message?: string;

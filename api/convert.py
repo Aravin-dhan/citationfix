@@ -64,11 +64,11 @@ class handler(BaseHTTPRequestHandler):
 
             # Word count validation
             word_count = len(text.split())
-            if word_count > 10000:
+            if word_count > 20000:
                 self.send_response(400)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
-                self.wfile.write(json.dumps({'error': f'Text exceeds 10,000 word limit (current: {word_count})'}).encode())
+                self.wfile.write(json.dumps({'error': f'Text exceeds 20,000 word limit (current: {word_count})'}).encode())
                 return
 
             # Process text and generate docx
