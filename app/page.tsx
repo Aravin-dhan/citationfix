@@ -40,6 +40,7 @@ export default function Home() {
   const [font, setFont] = useState('Times New Roman');
   const [fontSize, setFontSize] = useState(12);
   const [lineSpacing, setLineSpacing] = useState(1.5);
+  const [autoHeadings, setAutoHeadings] = useState(false);
 
   // Mobile Sidebar State
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -95,7 +96,8 @@ export default function Home() {
           // Send advanced settings if enabled
           font: isAdvanced ? font : 'Times New Roman',
           font_size: isAdvanced ? fontSize : 12,
-          line_spacing: isAdvanced ? lineSpacing : 1.5
+          line_spacing: isAdvanced ? lineSpacing : 1.5,
+          auto_headings: isAdvanced ? autoHeadings : false
         }),
       });
 
@@ -107,7 +109,7 @@ export default function Home() {
         body: JSON.stringify({
           wordCount,
           processingTimeMs: processingTime,
-          features: { citations: useCitations, formatting: useFormatting },
+          features: { citations: useCitations, formatting: useFormatting, autoHeadings },
           status: response.ok ? 'success' : 'error',
           errorType: response.ok ? undefined : 'api_error'
         })
@@ -258,6 +260,16 @@ export default function Home() {
 
             {isAdvanced && (
               <div className="p-3 bg-[var(--sidebar-hover)] rounded-lg border border-[var(--sidebar-border)] space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+
+                {/* Smart Headings Toggle */}
+                <label className="flex items-center justify-between cursor-pointer group">
+                  <span className="text-[10px] text-[var(--sidebar-text-muted)] uppercase font-bold group-hover:text-white transition-colors">Auto-Detect Headings</span>
+                  <div className={`w-8 h-4 rounded-full relative transition-colors ${autoHeadings ? 'bg-[var(--accent)]' : 'bg-slate-700'}`}>
+                    <input type="checkbox" className="hidden" checked={autoHeadings} onChange={(e) => setAutoHeadings(e.target.checked)} />
+                    <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${autoHeadings ? 'translate-x-4' : 'translate-x-0'}`} />
+                  </div>
+                </label>
+
                 {/* Font Selection */}
                 <div className="space-y-1">
                   <label className="text-[10px] text-[var(--sidebar-text-muted)] uppercase font-bold">Font Family</label>
@@ -457,8 +469,29 @@ export default function Home() {
                     });
                   }
 
+                  // Simulate Smart Headings
+                  let style = {};
+                  let className = "mb-4 text-justify";
+                  if (autoHeadings && isAdvanced) {
+                    const clean = para.trim();
+                    // Level 1
+                    if (/^(ARTICLE|CHAPTER)\s+[IVX\d]+/i.test(clean) || (clean === clean.toUpperCase() && clean.length < 100 && !/v\./i.test(clean))) {
+                      style = { fontWeight: 'bold', fontSize: '1.2em', textAlign: 'center', marginTop: '1em' };
+                      className = "mb-4";
+                    }
+                    // Level 2
+                    else if (/^(Section\s+\d+|[IVX]+\.)/.test(clean)) {
+                      style = { fontWeight: 'bold', fontSize: '1.1em', marginTop: '0.5em' };
+                      className = "mb-4";
+                    }
+                    // Level 3
+                    else if (/^([A-Z]\.|[0-9]+\.)/.test(clean)) {
+                      style = { marginLeft: '2em' };
+                    }
+                  }
+
                   return (
-                    <div key={i} className="mb-4 text-justify">
+                    <div key={i} className={className} style={style}>
                       <span dangerouslySetInnerHTML={{ __html: content }} />
                       {/* Simulate Footnotes at bottom of paragraph (simplified for preview) */}
                       {footnotes.length > 0 && (

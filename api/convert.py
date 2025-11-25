@@ -53,6 +53,7 @@ class handler(BaseHTTPRequestHandler):
             text = data.get('text', '')
             apply_formatting = data.get('formatting', False)
             convert_citations = data.get('convert_citations', True)
+            auto_format_headings = data.get('auto_headings', False)
             
             # Advanced Formatting Options (Defaults match previous hardcoded values)
             font_name = data.get('font', 'Times New Roman')
@@ -113,77 +114,103 @@ class handler(BaseHTTPRequestHandler):
                 if not para_text.strip():
                     continue
                     
-                p = doc.add_paragraph()
-                
-                # Apply formatting to paragraph
-                if apply_formatting:
-                    p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-                    p.paragraph_format.line_spacing = line_spacing
-                    p.paragraph_format.space_after = Pt(0)
-                
-                if convert_citations:
-                    # Regex to find {{fn: ...}} markers
-                    parts = re.split(r'(\{\{fn:.*?\}\})', para_text)
-                    
-                    for part in parts:
-                        if part.startswith('{{fn:') and part.endswith('}}'):
-                            # Extract citation text
-                            citation = part[5:-2].strip()
-                            if citation:
-                                # Add footnote
-                                footnote = p.add_footnote(citation)
-                                
-                                # Format the footnote text if needed
-                                if apply_formatting:
-                                    # In some versions, add_footnote returns a proxy, in others an oxml element
-                                    # We need to ensure we are accessing paragraphs correctly
-                                    try:
-                                        # Try accessing paragraphs directly (proxy object)
-                                        if hasattr(footnote, 'paragraphs'):
-                                            fn_paras = footnote.paragraphs
-                                        else:
-                                            # If it's an oxml element, we might need to wrap it or access xml children
-                                            from docx.text.paragraph import Paragraph
-                                            fn_paras = [Paragraph(p, p.getparent()) for p in footnote.findall(ns.qn('w:p'))]
+                # Smart Heading Detection
+                heading_level = 0
+                if auto_format_headings:
+                    clean_text = para_text.strip()
+                    # Level 1: ARTICLE, CHAPTER, or Short ALL CAPS line (non-citation)
+                    if (re.match(r'^(ARTICLE|CHAPTER)\s+[IVX\d]+', clean_text, re.IGNORECASE) or 
+                        (clean_text.isupper() and len(clean_text) < 100 and not re.search(r'v\.', clean_text, re.IGNORECASE))):
+                        heading_level = 1
+                    # Level 2: Roman Numerals (I., II.) or "Section X"
+                    elif re.match(r'^(Section\s+\d+|[IVX]+\.)', clean_text):
+                        heading_level = 2
+                    # Level 3: Alpha/Numeric Lists (A., 1.) - treated as minor headings or list items
+                    elif re.match(r'^([A-Z]\.|[0-9]+\.)', clean_text):
+                        heading_level = 3
 
-                                        if fn_paras:
-                                            for fn_para in fn_paras:
-                                                # Apply style first
-                                                try:
-                                                    fn_para.style = doc.styles['Footnote Text']
-                                                except KeyError:
-                                                    pass # Fallback to direct formatting if style missing
-
-                                                # Enforce strict legal footnote formatting on PARAGRAPH
-                                                # Spacing: Single (1.0), No space before/after
-                                                fn_para.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
-                                                fn_para.paragraph_format.space_after = Pt(0)
-                                                fn_para.paragraph_format.space_before = Pt(0)
-                                                
-                                                # Enforce strict legal footnote formatting on RUNS
-                                                # Font: Times New Roman, Size 10
-                                                if fn_para.runs:
-                                                    for run in fn_para.runs:
-                                                        run.font.name = 'Times New Roman'
-                                                        run.font.size = Pt(10)
-                                                else:
-                                                    # If no runs (unlikely), try to add one or just pass
-                                                    pass
-                                    except Exception as fn_error:
-                                        print(f"Warning: Could not format footnote: {fn_error}")
-                        else:
-                            # Regular text
-                            if part:
-                                run = p.add_run(part)
-                                if apply_formatting:
-                                    run.font.name = font_name
-                                    run.font.size = Pt(font_size)
-                else:
-                    # No citation conversion, just add text as is
-                    run = p.add_run(para_text)
+                if heading_level > 0:
+                    p = doc.add_heading(para_text, level=heading_level)
+                    # Apply font formatting to headings too if requested, but keep their structural properties
                     if apply_formatting:
-                        run.font.name = font_name
-                        run.font.size = Pt(font_size)
+                        for run in p.runs:
+                            run.font.name = font_name
+                            # Headings usually keep their size or are slightly larger. 
+                            # Let's keep standard size but bold/Times for consistency if formatting is on.
+                            run.font.size = Pt(font_size)
+                            run.font.color.rgb = None # Reset color to auto (usually black)
+                else:
+                    p = doc.add_paragraph()
+                    
+                    # Apply formatting to paragraph
+                    if apply_formatting:
+                        p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                        p.paragraph_format.line_spacing = line_spacing
+                        p.paragraph_format.space_after = Pt(0)
+                    
+                    if convert_citations:
+                        # Regex to find {{fn: ...}} markers
+                        parts = re.split(r'(\{\{fn:.*?\}\})', para_text)
+                        
+                        for part in parts:
+                            if part.startswith('{{fn:') and part.endswith('}}'):
+                                # Extract citation text
+                                citation = part[5:-2].strip()
+                                if citation:
+                                    # Add footnote
+                                    footnote = p.add_footnote(citation)
+                                    
+                                    # Format the footnote text if needed
+                                    if apply_formatting:
+                                        # In some versions, add_footnote returns a proxy, in others an oxml element
+                                        # We need to ensure we are accessing paragraphs correctly
+                                        try:
+                                            # Try accessing paragraphs directly (proxy object)
+                                            if hasattr(footnote, 'paragraphs'):
+                                                fn_paras = footnote.paragraphs
+                                            else:
+                                                # If it's an oxml element, we might need to wrap it or access xml children
+                                                from docx.text.paragraph import Paragraph
+                                                fn_paras = [Paragraph(p, p.getparent()) for p in footnote.findall(ns.qn('w:p'))]
+
+                                            if fn_paras:
+                                                for fn_para in fn_paras:
+                                                    # Apply style first
+                                                    try:
+                                                        fn_para.style = doc.styles['Footnote Text']
+                                                    except KeyError:
+                                                        pass # Fallback to direct formatting if style missing
+
+                                                    # Enforce strict legal footnote formatting on PARAGRAPH
+                                                    # Spacing: Single (1.0), No space before/after
+                                                    fn_para.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
+                                                    fn_para.paragraph_format.space_after = Pt(0)
+                                                    fn_para.paragraph_format.space_before = Pt(0)
+                                                    
+                                                    # Enforce strict legal footnote formatting on RUNS
+                                                    # Font: Times New Roman, Size 10
+                                                    if fn_para.runs:
+                                                        for run in fn_para.runs:
+                                                            run.font.name = 'Times New Roman'
+                                                            run.font.size = Pt(10)
+                                                    else:
+                                                        # If no runs (unlikely), try to add one or just pass
+                                                        pass
+                                        except Exception as fn_error:
+                                            print(f"Warning: Could not format footnote: {fn_error}")
+                            else:
+                                # Regular text
+                                if part:
+                                    run = p.add_run(part)
+                                    if apply_formatting:
+                                        run.font.name = font_name
+                                        run.font.size = Pt(font_size)
+                    else:
+                        # No citation conversion, just add text as is
+                        run = p.add_run(para_text)
+                        if apply_formatting:
+                            run.font.name = font_name
+                            run.font.size = Pt(font_size)
 
             # Add page numbers in footer "1 of xx" only if formatting is requested
             if apply_formatting:
