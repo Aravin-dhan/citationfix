@@ -59,6 +59,7 @@ export async function generateDocx(inputText: string): Promise<Blob> {
         // Check if this part is a superscript number (footnote reference)
         if (/^[\u2070-\u2079\u00B9\u00B2\u00B3]+$/.test(part)) {
             // Add footnote reference
+            // FootnoteReferenceRun automatically renders as a superscript number in Word
             const num = parseSuperscript(part);
             // We can use the parsed number or just increment. 
             // Since processText is sequential, the superscripts match the footnotes array order 1-based.
