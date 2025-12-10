@@ -469,6 +469,9 @@ export default function Home() {
                     });
                   }
 
+                  // Simulate Markdown Links in Main Text
+                  content = content.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline hover:text-[var(--accent)]">$1</a>');
+
                   // Simulate Smart Headings
                   let style = {};
                   let className = "mb-4 text-justify";
@@ -496,12 +499,16 @@ export default function Home() {
                       {/* Simulate Footnotes at bottom of paragraph (simplified for preview) */}
                       {footnotes.length > 0 && (
                         <div className="mt-2 pt-2 border-t border-slate-200 text-[0.8em] leading-tight text-slate-600">
-                          {footnotes.map((fn, idx) => (
-                            <div key={idx} className="flex gap-1 mb-1">
-                              <span className="font-bold">{idx + 1}.</span>
-                              <span>{fn}</span>
-                            </div>
-                          ))}
+                          {footnotes.map((fn, idx) => {
+                            // Parse links in footnotes for preview
+                            const fnContent = fn.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline hover:text-[var(--accent)]">$1</a>');
+                            return (
+                              <div key={idx} className="flex gap-1 mb-1">
+                                <span className="font-bold">{idx + 1}.</span>
+                                <span dangerouslySetInnerHTML={{ __html: fnContent }} />
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
