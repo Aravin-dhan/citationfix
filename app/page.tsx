@@ -128,6 +128,13 @@ export default function Home() {
     setErrorMessage(validation.message || '');
   };
 
+  const handleCursor = (e: any) => {
+    const val = e.target.value;
+    const sel = e.target.selectionStart;
+    const lines = val.substring(0, sel).split("\n");
+    setCursorPos({ line: lines.length, col: lines[lines.length - 1].length + 1 });
+  };
+
   const handleKeyDown = (e: any) => {
     // Cursor Tracking
     handleCursor(e);
