@@ -128,11 +128,21 @@ export default function Home() {
     setErrorMessage(validation.message || '');
   };
 
-  const handleCursor = (e: any) => {
-    const val = e.target.value;
-    const sel = e.target.selectionStart;
-    const lines = val.substring(0, sel).split("\n");
-    setCursorPos({ line: lines.length, col: lines[lines.length-1].length + 1 });
+  const handleKeyDown = (e: any) => {
+    // Cursor Tracking
+    handleCursor(e);
+
+    // Formatting Shortcuts
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+      e.preventDefault();
+      insertFormat('bold');
+    } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'i') {
+      e.preventDefault();
+      insertFormat('italic');
+    } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'u') {
+      e.preventDefault();
+      insertFormat('underline');
+    }
   };
 
   const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -421,6 +431,7 @@ export default function Home() {
                value={inputText}
                onChange={(e) => handleTextChange(e.target.value)}
                onKeyUp={handleCursor}
+               onKeyDown={handleKeyDown}
                onClick={handleCursor}
                placeholder="Paste your legal document here..."
                className="w-full h-full bg-transparent border-none resize-none focus:ring-0 text-slate-900 placeholder-slate-300 text-base leading-loose outline-none p-12 selection:bg-blue-100 selection:text-blue-900"
