@@ -5,7 +5,7 @@ import { validateWordLimit } from '@/utils/fileParser';
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { text, formatting, convert_citations, font, font_size, line_spacing, auto_headings } = body;
+        const { text, formatting, convert_citations, font, font_size, line_spacing, alignment, auto_headings } = body;
 
         if (!text || typeof text !== 'string') {
             return NextResponse.json(
@@ -22,11 +22,14 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Generate the .docx file
-        // Note: The current generateDocx implementation primarily handles citations and hyperlinks.
-        // If formatting options (font, etc.) are needed, generateDocx would need to be updated to accept them.
-        // For now, we proceed with the implemented generator which supports the core requirements.
-        const blob = await generateDocx(text);
+        // Generate the .docx file with all formatting options
+        const blob = await generateDocx(text, {
+            font,
+            fontSize: font_size,
+            lineSpacing: line_spacing,
+            alignment
+        });
+        
         const buffer = Buffer.from(await blob.arrayBuffer());
 
         return new NextResponse(buffer, {
