@@ -15,16 +15,18 @@ export async function generateDocx(inputText: string): Promise<Blob> {
         const parts = note.split(/(\[.*?\]\(.*?\))/g);
 
         parts.forEach(part => {
-            const linkMatch = part.match(/^\\\[(.*?)\]\((.*?)\\\\)$/);
-            if (linkMatch) {
+            if (part.startsWith('[') && part.includes('](') && part.endsWith(')')) {
+                const mid = part.indexOf('](');
+                const linkText = part.substring(1, mid);
+                const linkUrl = part.substring(mid + 2, part.length - 1);
                 children.push(new ExternalHyperlink({
                     children: [
                         new TextRun({
-                            text: linkMatch[1],
+                            text: linkText,
                             style: "Hyperlink",
                         }),
                     ],
-                    link: linkMatch[2],
+                    link: linkUrl,
                 }));
             } else if (part) {
                 children.push(new TextRun(part));
@@ -94,21 +96,21 @@ export async function generateDocx(inputText: string): Promise<Blob> {
                 }
             }
             // Check for Hyperlink
-            else if (/^\[(.*?)\]\((.*?)\)$/.test(part)) {
-                const match = part.match(/^\\\[(.*?)\]\((.*?)\\\\)$/);
-                if (match) {
-                    children.push(new ExternalHyperlink({
-                        children: [
-                            new TextRun({
-                                text: match[1],
-                                style: "Hyperlink",
-                                bold: isBold,
-                                allCaps: isAllCaps
-                            }),
-                        ],
-                        link: match[2],
-                    }));
-                }
+            else if (part.startsWith('[') && part.includes('](') && part.endsWith(')')) {
+                const mid = part.indexOf('](');
+                const linkText = part.substring(1, mid);
+                const linkUrl = part.substring(mid + 2, part.length - 1);
+                children.push(new ExternalHyperlink({
+                    children: [
+                        new TextRun({
+                            text: linkText,
+                            style: "Hyperlink",
+                            bold: isBold,
+                            allCaps: isAllCaps
+                        }),
+                    ],
+                    link: linkUrl,
+                }));
             }
             // Regular Text
             else {

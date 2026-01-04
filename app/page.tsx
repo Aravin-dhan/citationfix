@@ -218,11 +218,11 @@ export default function Home() {
                innerHtml += `<sup class="footnote-ref">${footnoteIndex + 1}</sup>`;
                footnoteIndex++;
              }
-           } else if (/^\[(.*?)\]\((.*?)\)$/.test(part)) {
-             const match = part.match(/^\[(.*?)\]\((.*?)\)$/);
-             if (match) {
-               innerHtml += `<a href="${match[2]}">${match[1]}</a>`;
-             }
+           } else if (part.startsWith('[') && part.includes('](') && part.endsWith(')')) {
+             const mid = part.indexOf('](');
+             const linkText = part.substring(1, mid);
+             const linkUrl = part.substring(mid + 2, part.length - 1);
+             innerHtml += `<a href="${linkUrl}">${linkText}</a>`;
            } else {
              innerHtml += part;
            }
@@ -496,10 +496,11 @@ export default function Home() {
                                      footnoteIndex++; // increment for next one
                                      return <sup key={pIdx} className="text-[0.7em] align-super text-blue-600 font-bold">{footnoteIndex}</sup>;
                                   }
-                                }
-                                 else if (/^\[(.*?)\]\((.*?)\)$/.test(part)) {
-                                   const match = part.match(/^\[(.*?)\]\((.*?)\)$/);
-                                   return <a key={pIdx} href={match ? match[2] : '#'} className="text-blue-600 underline">{match ? match[1] : part}</a>;
+                                } else if (part.startsWith('[') && part.includes('](') && part.endsWith(')')) {
+                                   const mid = part.indexOf('](');
+                                   const linkText = part.substring(1, mid);
+                                   const linkUrl = part.substring(mid + 2, part.length - 1);
+                                   return <a key={pIdx} href={linkUrl} className="text-blue-600 underline">{linkText}</a>;
                                 }
                                 return <span key={pIdx}>{part}</span>;
                              })}
