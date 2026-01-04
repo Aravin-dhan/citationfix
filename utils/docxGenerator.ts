@@ -33,7 +33,7 @@ export async function generateDocx(
     } = options;
 
     // Map string alignment to docx AlignmentType
-    const alignMap: Record<string, AlignmentType> = {
+    const alignMap: any = {
         'left': AlignmentType.LEFT,
         'center': AlignmentType.CENTER,
         'right': AlignmentType.RIGHT,
