@@ -1,14 +1,13 @@
-import { Document, Paragraph, TextRun, FootnoteReferenceRun, ExternalHyperlink, Packer } from 'docx';
+import { Document, Paragraph, TextRun, FootnoteReferenceRun, ExternalHyperlink, Packer, HeadingLevel, BorderStyle } from 'docx';
 import { processText } from '@/utils/converter';
 
 /**
- * Generate a .docx file with proper Word footnotes and hyperlinks
+ * Generate a .docx file with proper Word footnotes, hyperlinks, and specific formatting
  */
 export async function generateDocx(inputText: string): Promise<Blob> {
     const { mainText, footnotes } = processText(inputText);
 
     // Create footnotes map
-    // Note: older docx versions or types might expect an object conforming to interface rather than a class instance
     const footnotesMap: Record<number, any> = {};
     footnotes.forEach((note, index) => {
         const children: (TextRun | ExternalHyperlink)[] = [];
@@ -16,7 +15,7 @@ export async function generateDocx(inputText: string): Promise<Blob> {
         const parts = note.split(/(\[.*?\]\(.*?\))/g);
 
         parts.forEach(part => {
-            const linkMatch = part.match(/^\[(.*?)\]\((.*?)\)$/);
+            const linkMatch = part.match(/^\\\[(.*?)\]\((.*?)\\)$/);
             if (linkMatch) {
                 children.push(new ExternalHyperlink({
                     children: [
@@ -41,82 +40,111 @@ export async function generateDocx(inputText: string): Promise<Blob> {
         };
     });
 
-    // Create paragraphs with footnote references and hyperlinks
+    // Create paragraphs
     const paragraphs: Paragraph[] = [];
-
-    // Split main text by footnote markers (superscript numbers) and hyperlinks
-    // Regex matches:
-    // 1. Superscript numbers (footnotes): ([\u2070-\u2079\u00B9\u00B2\u00B3]+)
-    // 2. Markdown links: (\[.*?\]\(.*?\))
-    const parts = mainText.split(/([\u2070-\u2079\u00B9\u00B2\u00B3]+)|(\[.*?\]\(.*?\))/g).filter(part => part !== undefined && part !== '');
-
-    let currentParagraphChildren: (TextRun | FootnoteReferenceRun | ExternalHyperlink)[] = [];
+    
+    // Split by newlines to handle line-based formatting (headers)
+    const lines = mainText.split(/\r?\n/);
+    
     let footnoteIndex = 0;
 
-    for (let i = 0; i < parts.length; i++) {
-        const part = parts[i];
+    for (const line of lines) {
+        let textContent = line;
+        let headingLevel: any = undefined;
+        let isBold = false;
+        let isAllCaps = false;
+        let paragraphBorder: any = undefined;
+        let paragraphIndent: any = undefined;
 
-        // Check if this part is a superscript number (footnote reference)
-        if (/^[\u2070-\u2079\u00B9\u00B2\u00B3]+$/.test(part)) {
-            // Add footnote reference
-            // FootnoteReferenceRun automatically renders as a superscript number in Word
-            const num = parseSuperscript(part);
-            // We can use the parsed number or just increment. 
-            // Since processText is sequential, the superscripts match the footnotes array order 1-based.
-            // But let's rely on our footnoteIndex to be safe or just use the number if parsing works reliably.
-            // Simplest is to assume strict order from processText:
-            if (footnoteIndex < footnotes.length) {
-                currentParagraphChildren.push(
-                    new FootnoteReferenceRun(footnoteIndex + 1)
-                );
-                footnoteIndex++;
-            }
+        // Heading 1: "# " -> All Caps, Bold, Bottom Border
+        if (line.startsWith('# ')) {
+            headingLevel = HeadingLevel.HEADING_1;
+            textContent = line.substring(2);
+            isBold = true;
+            isAllCaps = true;
+            paragraphBorder = {
+                bottom: { color: "auto", space: 1, value: "single", size: 6 }
+            };
+        } 
+        // Heading 2: "## " -> Bold, Indented, Bottom Border
+        else if (line.startsWith('## ')) {
+            headingLevel = HeadingLevel.HEADING_2;
+            textContent = line.substring(3);
+            isBold = true;
+            paragraphIndent = { left: 720 }; // ~0.5 inch
+            paragraphBorder = {
+                bottom: { color: "auto", space: 1, value: "single", size: 6 }
+            };
         }
-        // Check if this part is a hyperlink
-        else if (/^\[(.*?)\]\((.*?)\)$/.test(part)) {
-            const match = part.match(/^\[(.*?)\]\((.*?)\)$/);
-            if (match) {
-                const linkText = match[1];
-                const linkUrl = match[2];
-                currentParagraphChildren.push(
-                    new ExternalHyperlink({
+
+        // Parse content for Footnotes (Superscripts) and Markdown Links
+        // Regex matches:
+        // 1. Superscript numbers (unicode from processText): ([\u2070-\u2079\u00B9\u00B2\u00B3]+)
+        // 2. Markdown links: (\[.*?\]\(.*?\))
+        const parts = textContent.split(/([\u2070-\u2079\u00B9\u00B2\u00B3]+)|(\[.*?\]\(.*?\))/g).filter(p => p !== undefined && p !== '');
+        
+        const children: (TextRun | FootnoteReferenceRun | ExternalHyperlink)[] = [];
+
+        for (const part of parts) {
+            // Check for Footnote Reference (Superscript chars)
+            if (/^[\u2070-\u2079\u00B9\u00B2\u00B3]+$/.test(part)) {
+                if (footnoteIndex < footnotes.length) {
+                    children.push(new FootnoteReferenceRun(footnoteIndex + 1));
+                    footnoteIndex++;
+                }
+            }
+            // Check for Hyperlink
+            else if (/^\\\[(.*?)\]\((.*?)\\)$/.test(part)) {
+                const match = part.match(/^\\\[(.*?)\]\((.*?)\\)$/);
+                if (match) {
+                    children.push(new ExternalHyperlink({
                         children: [
                             new TextRun({
-                                text: linkText,
+                                text: match[1],
                                 style: "Hyperlink",
+                                bold: isBold,
+                                allCaps: isAllCaps
                             }),
                         ],
-                        link: linkUrl,
-                    })
-                );
-            }
-        }
-        // Regular text
-        else {
-            // Split by newlines to create separate paragraphs
-            const lines = part.split('\n');
-
-            for (let j = 0; j < lines.length; j++) {
-                if (lines[j]) { // Don't skip empty strings if they are meaningful, but usually split results in empty strings for adjacent delimiters
-                    // If line has content
-                    currentParagraphChildren.push(new TextRun(lines[j]));
-                }
-
-                // If this is not the last line, it means we had a newline, so push paragraph
-                if (j < lines.length - 1) {
-                    paragraphs.push(new Paragraph({
-                        children: currentParagraphChildren
+                        link: match[2],
                     }));
-                    currentParagraphChildren = [];
                 }
             }
+            // Regular Text
+            else {
+                children.push(new TextRun({
+                    text: part,
+                    bold: isBold,
+                    allCaps: isAllCaps
+                }));
+            }
         }
+
+        // Create Paragraph
+        paragraphs.push(new Paragraph({
+            children: children,
+            heading: headingLevel,
+            border: paragraphBorder,
+            indent: paragraphIndent,
+            spacing: { after: 200 } // Add some spacing after paragraphs
+        }));
     }
 
-    // Push final paragraph if exists
-    if (currentParagraphChildren.length > 0) {
+    // Append Signature/Metadata
+    const signatureLines = [
+        "", // Spacing
+        "Warm Regards,",
+        "",
+        "Aravindhan B,",
+        "Student, 4th Year, BA. LLB.",
+        "Gujarat National Law University.",
+        "Email ID: aravindhan22bal014@gnlu.ac.in",
+        "Ph No.: +91 8431520025"
+    ];
+
+    for (const line of signatureLines) {
         paragraphs.push(new Paragraph({
-            children: currentParagraphChildren
+            children: [new TextRun(line)]
         }));
     }
 
@@ -125,23 +153,9 @@ export async function generateDocx(inputText: string): Promise<Blob> {
         footnotes: footnotesMap,
         sections: [{
             properties: {},
-            children: paragraphs.length > 0 ? paragraphs : [
-                new Paragraph({
-                    children: [new TextRun(mainText)]
-                })
-            ]
+            children: paragraphs
         }]
     });
 
     return await Packer.toBlob(doc);
-}
-
-// Helper to parse unicode superscripts back to number (if needed verification)
-function parseSuperscript(str: string): number {
-    const superscriptMap: { [key: string]: string } = {
-        '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4',
-        '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9'
-    };
-    const numStr = str.split('').map(char => superscriptMap[char] || char).join('');
-    return parseInt(numStr, 10);
 }
