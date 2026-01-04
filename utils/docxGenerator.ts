@@ -15,7 +15,7 @@ export async function generateDocx(inputText: string): Promise<Blob> {
         const parts = note.split(/(\[.*?\]\(.*?\))/g);
 
         parts.forEach(part => {
-            const linkMatch = part.match(/^\\\[(.*?)\]\((.*?)\\)$/);
+            const linkMatch = part.match(/^\\\[(.*?)\]\((.*?)\\\\)$/);
             if (linkMatch) {
                 children.push(new ExternalHyperlink({
                     children: [
@@ -80,8 +80,8 @@ export async function generateDocx(inputText: string): Promise<Blob> {
         // Parse content for Footnotes (Superscripts) and Markdown Links
         // Regex matches:
         // 1. Superscript numbers (unicode from processText): ([\u2070-\u2079\u00B9\u00B2\u00B3]+)
-        // 2. Markdown links: (\[.*?\]\(.*?\))
-        const parts = textContent.split(/([\u2070-\u2079\u00B9\u00B2\u00B3]+)|(\[.*?\]\(.*?\))/g).filter(p => p !== undefined && p !== '');
+        // 2. Markdown links: (\[.*?]\(.*?\))
+        const parts = textContent.split(/([\u2070-\u2079\u00B9\u00B2\u00B3]+)|(\[.*?]\(.*?\))/g).filter(p => p !== undefined && p !== '');
         
         const children: (TextRun | FootnoteReferenceRun | ExternalHyperlink)[] = [];
 
@@ -94,8 +94,8 @@ export async function generateDocx(inputText: string): Promise<Blob> {
                 }
             }
             // Check for Hyperlink
-            else if (/^\\\[(.*?)\]\((.*?)\\)$/.test(part)) {
-                const match = part.match(/^\\\[(.*?)\]\((.*?)\\)$/);
+            else if (/^\[(.*?)\]\((.*?)\)$/.test(part)) {
+                const match = part.match(/^\\\[(.*?)\]\((.*?)\\\\)$/);
                 if (match) {
                     children.push(new ExternalHyperlink({
                         children: [
